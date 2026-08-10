@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모바일 청첩장</title>
+  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=37f561d8ea4d1adb354f462906aa933f&libraries=services"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Noto+Serif+KR:wght@200;300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Serif KR', serif;
+      background: #2a2422;
+      color: #4a3f3a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .invite-card {
+      width: 100%;
+      max-width: 480px;
+      background: #fdfaf6;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      height: 100vh;
+      min-height: 560px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 20px 60px;
+      background-size: cover;
+      background-position: center;
+      color: white;
+      text-align: center;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(20,15,12,0.1) 0%, rgba(20,15,12,0.75) 100%);
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      letter-spacing: 5px;
+      opacity: 0.85;
+      margin-bottom: 18px;
+    }
+    .hero-names {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: 2.6rem;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .hero-date {
+      font-size: 0.85rem;
+      letter-spacing: 2px;
+      opacity: 0.9;
+    }
+
+    /* Section */
+    .section { padding: 60px 32px; text-align: center; }
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: #c9a98e;
+      margin: 0 auto 24px;
+    }
+    .section-eyebrow {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      letter-spacing: 4px;
+      color: #b08a6a;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .greeting-text {
+      font-size: 0.95rem;
+      line-height: 2.1;
+      color: #5c5050;
+      white-space: pre-wrap;
+      font-weight: 300;
+    }
+    .couple-names-small {
+      margin-top: 28px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      color: #8a6a52;
+    }
+
+    /* Countdown */
+    .countdown {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 30px;
+    }
+    .countdown-unit {
+      background: #f5ede4;
+      border-radius: 10px;
+      padding: 14px 12px;
+      min-width: 64px;
+    }
+    .countdown-num {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #8a6a52;
+      font-family: 'Cormorant Garamond', serif;
+    }
+    .countdown-label {
+      font-size: 0.65rem;
+      color: #b0a090;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* Calendar */
+    .calendar {
+      margin-top: 30px;
+      background: #faf5ef;
+      border-radius: 14px;
+      padding: 24px 16px;
+    }
+    .calendar-month {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.1rem;
+      color: #8a6a52;
+      margin-bottom: 16px;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      font-size: 0.75rem;
+    }
+    .calendar-grid .dow { color: #c0a98e; font-weight: bold; padding-bottom: 6px; }
+    .calendar-grid .day { padding: 8px 0; color: #6a5a50; }
+    .calendar-grid .day.highlight {
+      background: #d9a877;
+      color: white;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+    .calendar-grid .day.empty { visibility: hidden; }
+
+    /* Venue */
+    .venue-name { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; color: #6a5a50; margin-bottom: 6px; }
+    .venue-address { font-size: 0.82rem; color: #a08a8a; margin-bottom: 18px; }
+    #inviteMap {
+      width: 100%;
+      height: 220px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .venue-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .venue-btn {
+      padding: 10px 16px;
+      border-radius: 20px;
+      border: 1px solid #d9c4a8;
+      background: white;
+      color: #8a6a52;
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* Gallery */
+    .editorial-gallery {
+      background: #2a2422;
+      padding: 60px 24px;
+    }
+    .editorial-eyebrow {
+      text-align: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      letter-spacing: 4px;
+      color: #c9a98e;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+    .photo-stack-item {
+      position: relative;
+      background: white;
+      border-radius: 4px;
+      padding: 10px 34px 10px 10px;
+      margin-bottom: 24px;
+    }
+    .photo-stack-item img {
+      width: 100%;
+      display: block;
+      filter: grayscale(1) contrast(1.05);
+      border-radius: 2px;
+    }
+    .photo-stack-caption {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%) rotate(180deg);
+      writing-mode: vertical-rl;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      color: #8a7a6a;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .gallery img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    .gallery img:active { transform: scale(0.96); }
+
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox img { max-width: 92%; max-height: 85vh; object-fit: contain; }
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      color: white;
+      font-size: 1.8rem;
+      cursor: pointer;
+    }
+
+    /* Guestbook */
+    .guestbook-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .guestbook-form input, .guestbook-form textarea {
+      padding: 13px;
+      border-radius: 10px;
+      border: 1px solid #e5d5c8;
+      font-size: 0.88rem;
+      font-family: inherit;
+      background: #fdfaf6;
+    }
+    .guestbook-form button {
+      padding: 13px;
+      border-radius: 10px;
+      border: none;
+      background: #b08a6a;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+    .guestbook-msg {
+      background: #faf5ef;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .guestbook-msg-name { font-weight: bold; color: #b08a6a; font-size: 0.85rem; }
+    .guestbook-msg-text { font-size: 0.85rem; color: #5c5050; margin-top: 5px; line-height: 1.6; }
+    .guestbook-msg-time { font-size: 0.68rem; color: #c0a98e; margin-top: 8px; }
+    .empty-msg { color: #c0a98e; font-size: 0.85rem; }
+
+    /* Footer */
+    .footer {
+      padding: 40px 32px 60px;
+      text-align: center;
+    }
+    .share-btn {
+      display: inline-block;
+      padding: 14px 28px;
+      border-radius: 24px;
+      background: #4a3f3a;
+      color: white;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+    .footer-mark {
+      margin-top: 24px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.75rem;
+      color: #c0a98e;
+      letter-spacing: 2px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #4a3f3a;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 0.85rem;
+      z-index: 3000;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .loading-msg { text-align: center; padding: 100px 20px; color: #999; font-family: 'Noto Serif KR', serif; }
+  </style>
+</head>
+<body>
+  <div id="loadingMsg" class="loading-msg">청첩장을 불러오는 중...</div>
+  <div class="invite-card" id="inviteCard" style="display:none;">
+
+    <div class="hero" id="heroSection">
+      <div class="hero-content">
+        <div class="hero-label">W E D D I N G &nbsp; I N V I T A T I O N</div>
+        <div class="hero-names" id="heroNames"></div>
+        <div class="hero-date" id="heroDate"></div>
+      </div>
+    </div>
+
+    <div class="section fade-in" id="greetingSection">
+      <div class="divider"></div>
+      <div class="section-eyebrow">Greeting</div>
+      <div class="greeting-text" id="greetingText"></div>
+      <div class="couple-names-small" id="coupleNamesSmall"></div>
+
+      <div class="countdown" id="countdownBox"></div>
+    </div>
+
+    <div class="section fade-in" id="calendarSection">
+      <div class="divider"></div>
+      <div class="section-eyebrow">Wedding Day</div>
+      <div class="calendar" id="calendarBox"></div>
+    </div>
+
+    <div class="section fade-in" id="venueSection">
+      <div class="divider"></div>
+      <div class="section-eyebrow">Location</div>
+      <div class="venue-name" id="venueName"></div>
+      <div class="venue-address" id="venueAddress"></div>
+      <div id="inviteMap"></div>
+      <div class="venue-actions" id="venueActions"></div>
+    </div>
+
+    <div class="editorial-gallery fade-in" id="gallerySection">
+      <div class="editorial-eyebrow">Our Story</div>
+      <div id="galleryGrid"></div>
+    </div>
+
+    <div class="section fade-in">
+      <div class="divider"></div>
+      <div class="section-eyebrow">Guestbook</div>
+      <div class="guestbook-form">
+        <input type="text" id="guestName" placeholder="이름">
+        <textarea id="guestMessage" placeholder="축하 메시지를 남겨주세요" rows="3"></textarea>
+        <button onclick="postGuestbook()">메시지 남기기</button>
+      </div>
+      <div id="guestbookList"></div>
+    </div>
+
+    <div class="footer">
+      <button class="share-btn" onclick="copyPageLink()">📋 청첩장 링크 복사</button>
+      <div class="footer-mark">— WITH LOVE —</div>
+    </div>
+
+  </div>
+
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-close">✕</div>
+    <img id="lightboxImg" src="">
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const invitationId = params.get('id');
+    let weddingDateObj = null;
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    async function loadInvitation() {
+      if (!invitationId) {
+        document.getElementById('loadingMsg').textContent = '잘못된 링크입니다';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/travel/invitation/public/${invitationId}`);
+        if (!res.ok) {
+          document.getElementById('loadingMsg').textContent = '청첩장을 찾을 수 없습니다';
+          return;
+        }
+        const data = await res.json();
+        renderInvitation(data);
+        loadGuestbook();
+        setupScrollAnimation();
+      } catch (err) {
+        document.getElementById('loadingMsg').textContent = '오류가 발생했습니다';
+      }
+    }
+
+    function renderInvitation(data) {
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('inviteCard').style.display = 'block';
+
+      const groom = data.groom_name || '신랑';
+      const bride = data.bride_name || '신부';
+
+      document.getElementById('heroNames').innerHTML = `${groom}<br><span style="font-size:1.1rem; opacity:0.8;">&</span><br>${bride}`;
+      document.getElementById('coupleNamesSmall').textContent = `${groom} · ${bride}`;
+
+      if (data.photos && data.photos.length > 0) {
+        document.getElementById('heroSection').style.backgroundImage = `url('${data.photos[0]}')`;
+      } else {
+        document.getElementById('heroSection').style.background = 'linear-gradient(160deg, #d9c4a8, #b08a6a)';
+      }
+
+      if (data.wedding_date) {
+        weddingDateObj = new Date(data.wedding_date);
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const dateStr = `${weddingDateObj.getFullYear()}. ${weddingDateObj.getMonth()+1}. ${weddingDateObj.getDate()} ${days[weddingDateObj.getDay()]}요일 · ${String(weddingDateObj.getHours()).padStart(2,'0')}:${String(weddingDateObj.getMinutes()).padStart(2,'0')}`;
+        document.getElementById('heroDate').textContent = dateStr;
+        renderCountdown();
+        renderCalendar();
+        setInterval(renderCountdown, 60000);
+      } else {
+        document.getElementById('calendarSection').style.display = 'none';
+      }
+
+      if (data.greeting) {
+        document.getElementById('greetingText').textContent = data.greeting;
+      } else {
+        document.getElementById('greetingText').textContent = '저희 두 사람이 사랑과 믿음으로\n하나의 가정을 이루려 합니다.\n귀한 걸음 하시어 축복해 주시면\n더없는 기쁨으로 간직하겠습니다.';
+      }
+
+      if (data.venue_name) {
+        document.getElementById('venueName').textContent = data.venue_name;
+        document.getElementById('venueAddress').textContent = data.venue_address;
+        const center = new kakao.maps.LatLng(data.venue_lat, data.venue_lng);
+        const map = new kakao.maps.Map(document.getElementById('inviteMap'), { center, level: 4 });
+        new kakao.maps.Marker({ position: center, map });
+
+        const encName = encodeURIComponent(data.venue_name);
+        document.getElementById('venueActions').innerHTML = `
+          <a class="venue-btn" href="https://map.kakao.com/link/to/${encName},${data.venue_lat},${data.venue_lng}" target="_blank">카카오맵</a>
+          <a class="venue-btn" href="https://map.naver.com/v5/search/${encName}" target="_blank">네이버지도</a>
+          <a class="venue-btn" href="#" onclick="copyText('${data.venue_address}'); return false;">주소 복사</a>
+        `;
+      } else {
+        document.getElementById('venueSection').style.display = 'none';
+      }
+
+      if (data.photos && data.photos.length > 0) {
+        const groomEn = (data.groom_name || 'GROOM').toUpperCase();
+        const brideEn = (data.bride_name || 'BRIDE').toUpperCase();
+        const dateCaption = weddingDateObj
+          ? `${['SUN','MON','TUE','WED','THU','FRI','SAT'][weddingDateObj.getDay()]} · ${String(weddingDateObj.getHours()).padStart(2,'0')}:${String(weddingDateObj.getMinutes()).padStart(2,'0')}`
+          : '';
+
+        document.getElementById('galleryGrid').innerHTML = data.photos.map((url, idx) => {
+          const caption = idx % 2 === 0 ? `${groomEn} & ${brideEn}` : dateCaption;
+          return `
+            <div class="photo-stack-item">
+              <img src="${url}" onclick="openLightbox('${url}')">
+              ${caption ? `<div class="photo-stack-caption">${caption}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      } else {
+        document.getElementById('gallerySection').style.display = 'none';
+      }
+    }
+
+    function renderCountdown() {
+      if (!weddingDateObj) return;
+      const now = new Date();
+      let diff = weddingDateObj - now;
+      const box = document.getElementById('countdownBox');
+      if (diff <= 0) {
+        box.innerHTML = `<div class="countdown-unit"><div class="countdown-num">💍</div><div class="countdown-label">WEDDING DAY</div></div>`;
+        return;
+      }
+      const days = Math.floor(diff / (1000*60*60*24));
+      const hours = Math.floor((diff / (1000*60*60)) % 24);
+      const mins = Math.floor((diff / (1000*60)) % 60);
+      box.innerHTML = `
+        <div class="countdown-unit"><div class="countdown-num">${days}</div><div class="countdown-label">DAYS</div></div>
+        <div class="countdown-unit"><div class="countdown-num">${hours}</div><div class="countdown-label">HOURS</div></div>
+        <div class="countdown-unit"><div class="countdown-num">${mins}</div><div class="countdown-label">MIN</div></div>
+      `;
+    }
+
+    function renderCalendar() {
+      if (!weddingDateObj) return;
+      const year = weddingDateObj.getFullYear();
+      const month = weddingDateObj.getMonth();
+      const targetDate = weddingDateObj.getDate();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      document.getElementById('calendarBox').innerHTML = `
+        <div class="calendar-month">${year}년 ${month + 1}월</div>
+        <div class="calendar-grid">
+          <div class="dow">일</div><div class="dow">월</div><div class="dow">화</div><div class="dow">수</div><div class="dow">목</div><div class="dow">금</div><div class="dow">토</div>
+          ${Array(firstDay).fill('<div class="day empty"></div>').join('')}
+          ${Array.from({length: daysInMonth}, (_, i) => i + 1).map(d =>
+            `<div class="day ${d === targetDate ? 'highlight' : ''}">${d}</div>`
+          ).join('')}
+        </div>
+      `;
+    }
+
+    function openLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightbox').classList.add('active');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => showToast('복사되었습니다'));
+    }
+
+    function copyPageLink() {
+      navigator.clipboard.writeText(location.href).then(() => showToast('청첩장 링크가 복사되었습니다'));
+    }
+
+    async function loadGuestbook() {
+      const listEl = document.getElementById('guestbookList');
+      try {
+        const res = await fetch(`/api/travel/invitation/${invitationId}/guestbook`);
+        const messages = await res.json();
+        if (messages.length === 0) {
+          listEl.innerHTML = '<div class="empty-msg">첫 축하 메시지를 남겨보세요!</div>';
+          return;
+        }
+        listEl.innerHTML = messages.map(m => `
+          <div class="guestbook-msg">
+            <div class="guestbook-msg-name">${m.name}</div>
+            <div class="guestbook-msg-text">${m.message}</div>
+            <div class="guestbook-msg-time">${m.created_at}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        listEl.innerHTML = '<div class="empty-msg">불러오기 실패</div>';
+      }
+    }
+
+    async function postGuestbook() {
+      const name = document.getElementById('guestName').value.trim();
+      const message = document.getElementById('guestMessage').value.trim();
+      if (!name || !message) {
+        showToast('이름과 메시지를 입력해주세요');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/travel/invitation/${invitationId}/guestbook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, message })
+        });
+        if (!res.ok) {
+          showToast('전송 실패');
+          return;
+        }
+        document.getElementById('guestName').value = '';
+        document.getElementById('guestMessage').value = '';
+        loadGuestbook();
+      } catch (err) {
+        showToast('오류가 발생했습니다');
+      }
+    }
+
+    function setupScrollAnimation() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.15 });
+      document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    }
+
+    loadInvitation();
+  </script>
+</body>
+</html>

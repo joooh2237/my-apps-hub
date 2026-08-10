@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>My Apps</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    h1 { margin-bottom: 30px; font-size: 1.8rem; }
+    .auth-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 340px;
+    }
+    input {
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .link-btn {
+      background: none;
+      color: #ff8fa3;
+      text-decoration: underline;
+      font-size: 0.85rem;
+      font-weight: normal;
+      padding: 4px;
+    }
+    .status-bar {
+      margin-bottom: 20px;
+      color: #9999b3;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-bar button {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+    }
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 700px;
+    }
+    .app-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: white;
+    }
+    .app-card:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-3px);
+    }
+    .app-card.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .app-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .app-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 6px; }
+    .app-desc { font-size: 0.8rem; color: #9999b3; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <h1>✨ My Apps</h1>
+
+  <div class="auth-box" id="authBox">
+    <input type="text" id="authUsername" placeholder="아이디">
+    <input type="password" id="authPassword" placeholder="비밀번호">
+    <button onclick="doLogin()">로그인</button>
+    <button class="link-btn" onclick="doRegister()">계정이 없으신가요? 회원가입</button>
+  </div>
+
+  <div id="hubContent" class="hidden">
+    <div class="status-bar">
+      <span id="statusText"></span>
+      <button onclick="doLogout()">로그아웃</button>
+    </div>
+
+    <div class="app-grid">
+      <a class="app-card" href="/travel/">
+        <div class="app-icon">🗺️</div>
+        <div class="app-name">여행 코스</div>
+        <div class="app-desc">지역 검색부터 데이트 코스까지</div>
+      </a>
+      <a class="app-card" href="/todo/">
+        <div class="app-icon">✅</div>
+        <div class="app-name">할일 관리</div>
+        <div class="app-desc">간단한 투두리스트</div>
+      </a>
+      <a class="app-card" href="/invite-edit/">
+        <div class="app-icon">💌</div>
+        <div class="app-name">모바일 청첩장</div>
+        <div class="app-desc">나만의 청첩장 만들기</div>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function updateView() {
+      const authBox = document.getElementById('authBox');
+      const hubContent = document.getElementById('hubContent');
+      const statusText = document.getElementById('statusText');
+
+      if (isLoggedIn()) {
+        authBox.classList.add('hidden');
+        hubContent.classList.remove('hidden');
+        statusText.textContent = `👤 ${getUsername()}님 환영합니다`;
+      } else {
+        authBox.classList.remove('hidden');
+        hubContent.classList.add('hidden');
+      }
+    }
+
+    async function doRegister() {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!username || !password) { alert('아이디와 비밀번호를 입력해주세요'); return; }
+      try {
+        const res = await fetch('/api/travel/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.detail || '회원가입 실패'); return; }
+        alert('회원가입 완료! 로그인해주세요.');
+      } catch (err) {
+        alert('오류가 발생했습니다');
+      }
+    }
+
+    async function doLogin() {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!username || !password) { alert('아이디와 비밀번호를 입력해주세요'); return; }
+      try {
+        const res = await fetch('/api/travel/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.detail || '로그인 실패'); return; }
+        localStorage.setItem('travel_token', data.access_token);
+        localStorage.setItem('travel_username', username);
+        updateView();
+      } catch (err) {
+        alert('오류가 발생했습니다');
+      }
+    }
+
+    function doLogout() {
+      localStorage.removeItem('travel_token');
+      localStorage.removeItem('travel_username');
+      updateView();
+    }
+
+    updateView();
+  </script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>청첩장 만들기</title>
+  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=37f561d8ea4d1adb354f462906aa933f&libraries=services"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-bar a {
+      color: #9999b3;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    h1 { margin: 0 0 20px; font-size: 1.6rem; }
+    .form-section {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .form-section h3 { margin-top: 0; font-size: 0.95rem; color: #ff8fa3; }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #9999b3;
+      margin: 12px 0 4px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .row2 { display: flex; gap: 8px; }
+    .row2 > div { flex: 1; }
+    button {
+      padding: 12px 18px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .save-btn-full {
+      width: 100%;
+      max-width: 500px;
+      padding: 16px;
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+    .venue-results { margin-top: 8px; }
+    .venue-item {
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .venue-item:hover { background: rgba(255,255,255,0.1); }
+    #venueMap {
+      width: 100%;
+      height: 200px;
+      border-radius: 10px;
+      margin-top: 10px;
+      display: none;
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .photo-item {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-item .del-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .upload-label {
+      display: block;
+      text-align: center;
+      padding: 30px;
+      border: 2px dashed rgba(255,255,255,0.15);
+      border-radius: 10px;
+      cursor: pointer;
+      color: #9999b3;
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+    #photoFileInput { display: none; }
+    .color-palette {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .color-swatch {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+    }
+    .color-swatch.selected {
+      border-color: white;
+      box-shadow: 0 0 0 2px #333;
+    }
+    .hero-photo-picker {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .hero-photo-option {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 3px solid transparent;
+      position: relative;
+    }
+    .hero-photo-option img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hero-photo-option.selected {
+      border-color: #e94560;
+    }
+    .hero-photo-option .check {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: #e94560;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+    }
+    .hero-photo-option.selected .check { display: flex; }
+    .share-box {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(233,69,96,0.1);
+      border: 1px solid rgba(233,69,96,0.3);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .share-link {
+      word-break: break-all;
+      font-size: 0.8rem;
+      color: #ff8fa3;
+      margin: 8px 0;
+    }
+    .status-msg { color: #8888a3; font-size: 0.8rem; margin-top: 8px; }
+    .login-required { text-align: center; color: #9999b3; margin-top: 60px; }
+    .login-required a { color: #ff8fa3; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+  </div>
+
+  <h1>💌 청첩장 만들기</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="editorApp" class="hidden" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+
+    <div class="share-box" id="shareBox" style="display:none;">
+      <div>👀 공개 링크</div>
+      <div class="share-link" id="shareLink"></div>
+      <button onclick="copyShareLink()">📋 링크 복사</button>
+    </div>
+
+    <div class="form-section">
+      <h3>👰🤵 신랑신부 정보</h3>
+      <div class="row2">
+        <div>
+          <label>신랑 이름</label>
+          <input type="text" id="groomName" placeholder="홍길동">
+        </div>
+        <div>
+          <label>신부 이름</label>
+          <input type="text" id="brideName" placeholder="김영희">
+        </div>
+      </div>
+      <label>인사말</label>
+      <textarea id="greeting" placeholder="저희 두 사람이 사랑과 믿음으로 하나가 되려 합니다..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <h3>📅 예식 일시</h3>
+      <label>날짜 및 시간</label>
+      <input type="datetime-local" id="weddingDate">
+    </div>
+
+    <div class="form-section">
+      <h3>📍 예식 장소</h3>
+      <label>장소 검색</label>
+      <input type="text" id="venueSearchInput" placeholder="예식장 이름을 검색하세요">
+      <button onclick="searchVenue()" style="margin-top:8px;">검색</button>
+      <div class="venue-results" id="venueResults"></div>
+      <div id="venueMap"></div>
+      <div class="status-msg" id="venueSelected"></div>
+    </div>
+
+    <div class="form-section">
+      <h3>📷 사진 갤러리</h3>
+      <div class="photo-grid" id="photoGrid"></div>
+      <label class="upload-label" for="photoFileInput">+ 사진 추가하기</label>
+      <input type="file" id="photoFileInput" accept="image/*" onchange="uploadPhoto()">
+    </div>
+
+    <div class="form-section">
+      <h3>🖼️ 대표사진 (첫 화면 배경)</h3>
+      <div class="status-msg">업로드한 사진 중 첫 화면에 크게 나올 사진을 골라주세요</div>
+      <div class="hero-photo-picker" id="heroPhotoPicker"></div>
+    </div>
+
+    <div class="form-section">
+      <h3>🎨 테마 색상</h3>
+      <div class="color-palette" id="colorPalette"></div>
+    </div>
+
+    <div class="form-section">
+      <h3>🎵 배경 음악</h3>
+      <div class="status-msg">mp3 파일의 직접 링크(URL)를 입력해주세요</div>
+      <input type="text" id="musicUrlInput" placeholder="https://example.com/music.mp3">
+    </div>
+
+    <button class="save-btn-full" onclick="saveInvitation()">💾 저장하기</button>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    let invitationId = null;
+    let venueMap = null;
+    let venueMarker = null;
+    let selectedVenue = null;
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('editorApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('editorApp').classList.remove('hidden');
+      return true;
+    }
+
+    async function loadInvitation() {
+      try {
+        const res = await fetch('/api/travel/invitation', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        invitationId = data.id;
+
+        document.getElementById('groomName').value = data.groom_name || '';
+        document.getElementById('brideName').value = data.bride_name || '';
+        document.getElementById('greeting').value = data.greeting || '';
+        document.getElementById('weddingDate').value = data.wedding_date || '';
+
+        if (data.venue_name) {
+          selectedVenue = {
+            name: data.venue_name,
+            address: data.venue_address,
+            lat: data.venue_lat,
+            lng: data.venue_lng,
+          };
+          document.getElementById('venueSelected').textContent = `📍 선택됨: ${data.venue_name}`;
+          showVenueMap(selectedVenue);
+        }
+
+        renderPhotos(data.photos || []);
+        currentHeroPhoto = data.hero_photo || '';
+        currentThemeColor = data.theme_color || THEME_COLORS[0];
+        document.getElementById('musicUrlInput').value = data.music_url || '';
+        renderColorPalette();
+        renderHeroPhotoPicker(data.photos || []);
+
+        const shareBox = document.getElementById('shareBox');
+        shareBox.style.display = 'block';
+        const link = `${location.origin}/invite/?id=${invitationId}`;
+        document.getElementById('shareLink').textContent = link;
+      } catch (err) {
+        console.error('청첩장 로딩 실패:', err);
+      }
+    }
+
+    const THEME_COLORS = ['#b08a6a', '#e94560', '#5c7a89', '#7a8a5c', '#8a5c7a', '#4a3f3a'];
+    let currentHeroPhoto = '';
+    let currentThemeColor = THEME_COLORS[0];
+
+    function renderColorPalette() {
+      const el = document.getElementById('colorPalette');
+      el.innerHTML = THEME_COLORS.map(c => `
+        <div class="color-swatch ${c === currentThemeColor ? 'selected' : ''}"
+             style="background:${c};"
+             onclick="selectThemeColor('${c}')"></div>
+      `).join('');
+    }
+
+    function selectThemeColor(c) {
+      currentThemeColor = c;
+      renderColorPalette();
+    }
+
+    function renderHeroPhotoPicker(photos) {
+      const el = document.getElementById('heroPhotoPicker');
+      if (photos.length === 0) {
+        el.innerHTML = '<div class="status-msg">사진을 먼저 업로드해주세요</div>';
+        return;
+      }
+      el.innerHTML = photos.map(url => `
+        <div class="hero-photo-option ${url === currentHeroPhoto ? 'selected' : ''}" onclick="selectHeroPhoto('${url}')">
+          <img src="${url}">
+          <div class="check">✓</div>
+        </div>
+      `).join('');
+    }
+
+    function selectHeroPhoto(url) {
+      currentHeroPhoto = url;
+      const photos = Array.from(document.querySelectorAll('.hero-photo-option img')).map(img => img.getAttribute('src'));
+      renderHeroPhotoPicker(photos);
+    }
+
+    async function searchVenue() {
+      const query = document.getElementById('venueSearchInput').value.trim();
+      if (!query) return;
+      const resultsEl = document.getElementById('venueResults');
+      resultsEl.innerHTML = '<div class="status-msg">검색 중...</div>';
+      try {
+        const res = await fetch(`/api/travel/venue/search?query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data.length === 0) {
+          resultsEl.innerHTML = '<div class="status-msg">검색 결과가 없습니다</div>';
+          return;
+        }
+        resultsEl.innerHTML = data.map((v, i) => `
+          <div class="venue-item" onclick='selectVenue(${JSON.stringify(v)})'>
+            📍 ${v.name}<br><span style="color:#8888a3; font-size:0.75rem;">${v.address}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        resultsEl.innerHTML = '<div class="status-msg">오류가 발생했습니다</div>';
+      }
+    }
+
+    function selectVenue(v) {
+      selectedVenue = v;
+      document.getElementById('venueSelected').textContent = `📍 선택됨: ${v.name}`;
+      document.getElementById('venueResults').innerHTML = '';
+      showVenueMap(v);
+    }
+
+    function showVenueMap(v) {
+      const mapEl = document.getElementById('venueMap');
+      mapEl.style.display = 'block';
+      const center = new kakao.maps.LatLng(v.lat, v.lng);
+      if (!venueMap) {
+        venueMap = new kakao.maps.Map(mapEl, { center, level: 4 });
+      } else {
+        venueMap.setCenter(center);
+      }
+      if (venueMarker) venueMarker.setMap(null);
+      venueMarker = new kakao.maps.Marker({ position: center, map: venueMap });
+    }
+
+    function renderPhotos(photos) {
+      const gridEl = document.getElementById('photoGrid');
+      gridEl.innerHTML = photos.map(url => `
+        <div class="photo-item">
+          <img src="${url}">
+          <button class="del-btn" onclick="deletePhoto('${url}')">✕</button>
+        </div>
+      `).join('');
+      renderHeroPhotoPicker(photos);
+    }
+
+    async function uploadPhoto() {
+      const fileInput = document.getElementById('photoFileInput');
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/travel/invitation/photo', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.detail || '업로드 실패');
+          return;
+        }
+        renderPhotos(data.photos);
+      } catch (err) {
+        alert('업로드 중 오류가 발생했습니다');
+      }
+      fileInput.value = '';
+    }
+
+    async function deletePhoto(url) {
+      if (!confirm('사진을 삭제할까요?')) return;
+      const res = await fetch('/api/travel/invitation/photo', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      renderPhotos(data.photos);
+    }
+
+    async function saveInvitation() {
+      const body = {
+        groom_name: document.getElementById('groomName').value.trim(),
+        bride_name: document.getElementById('brideName').value.trim(),
+        greeting: document.getElementById('greeting').value.trim(),
+        wedding_date: document.getElementById('weddingDate').value,
+        venue_name: selectedVenue ? selectedVenue.name : '',
+        venue_address: selectedVenue ? selectedVenue.address : '',
+        venue_lat: selectedVenue ? String(selectedVenue.lat) : '',
+        venue_lng: selectedVenue ? String(selectedVenue.lng) : '',
+        hero_photo: currentHeroPhoto,
+        theme_color: currentThemeColor,
+        music_url: document.getElementById('musicUrlInput').value.trim(),
+      };
+      try {
+        const res = await fetch('/api/travel/invitation', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+          },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          alert('저장 실패');
+          return;
+        }
+        alert('저장되었습니다!');
+        loadInvitation();
+      } catch (err) {
+        alert('오류가 발생했습니다');
+      }
+    }
+
+    function copyShareLink() {
+      const link = document.getElementById('shareLink').textContent;
+      navigator.clipboard.writeText(link).then(() => alert('링크가 복사되었습니다!'));
+    }
+
+    if (checkAuth()) {
+      loadInvitation();
+    }
+  </script>
+</body>
+</html>

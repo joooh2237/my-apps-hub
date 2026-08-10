@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>할일 관리</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-bar a {
+      color: #9999b3;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    h1 { margin: 0 0 20px; font-size: 1.8rem; }
+    .add-box {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 24px;
+    }
+    input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      padding: 14px 20px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .todo-list {
+      width: 100%;
+      max-width: 500px;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .todo-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .todo-content {
+      flex: 1;
+      font-size: 0.95rem;
+    }
+    .todo-content.done {
+      text-decoration: line-through;
+      color: #6b6b8a;
+    }
+    .todo-delete {
+      background: none;
+      border: none;
+      color: #8888a3;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+    }
+    .empty-msg {
+      color: #8888a3;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .login-required {
+      text-align: center;
+      color: #9999b3;
+      margin-top: 60px;
+    }
+    .login-required a {
+      color: #ff8fa3;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <a href="#" onclick="doLogout()" id="logoutLink">로그아웃</a>
+  </div>
+
+  <h1>✅ 할일 관리</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="todoApp" class="hidden">
+    <div class="add-box">
+      <input type="text" id="todoInput" placeholder="할일을 입력하세요">
+      <button onclick="addTodo()">추가</button>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('todoApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('todoApp').classList.remove('hidden');
+      return true;
+    }
+
+    function doLogout() {
+      localStorage.removeItem('travel_token');
+      localStorage.removeItem('travel_username');
+      checkAuth();
+    }
+
+    async function loadTodos() {
+      const listEl = document.getElementById('todoList');
+      listEl.innerHTML = '<div class="empty-msg">불러오는 중...</div>';
+      try {
+        const res = await fetch('/api/travel/todos', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) {
+          listEl.innerHTML = '<div class="empty-msg">불러오기 실패</div>';
+          return;
+        }
+        const todos = await res.json();
+        renderTodos(todos);
+      } catch (err) {
+        listEl.innerHTML = '<div class="empty-msg">오류가 발생했습니다</div>';
+      }
+    }
+
+    function renderTodos(todos) {
+      const listEl = document.getElementById('todoList');
+      if (todos.length === 0) {
+        listEl.innerHTML = '<div class="empty-msg">할일이 없어요. 추가해보세요!</div>';
+        return;
+      }
+      listEl.innerHTML = todos.map(t => `
+        <div class="todo-item">
+          <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTodo(${t.id}, this.checked)">
+          <div class="todo-content ${t.done ? 'done' : ''}">${t.content}</div>
+          <button class="todo-delete" onclick="deleteTodo(${t.id})">🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    async function addTodo() {
+      const input = document.getElementById('todoInput');
+      const content = input.value.trim();
+      if (!content) return;
+      await fetch('/api/travel/todos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ content })
+      });
+      input.value = '';
+      loadTodos();
+    }
+
+    async function toggleTodo(id, done) {
+      await fetch(`/api/travel/todos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ done })
+      });
+      loadTodos();
+    }
+
+    async function deleteTodo(id) {
+      await fetch(`/api/travel/todos/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      loadTodos();
+    }
+
+    document.getElementById('todoInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTodo();
+    });
+
+    if (checkAuth()) {
+      loadTodos();
+    }
+  </script>
+</body>
+</html>
