@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>랭킹 게임</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🏆</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px 60px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: #a0a0b8;
+    }
+    .top-bar a { color: #a0a0b8; text-decoration: none; }
+    h1 { margin: 0 0 16px; font-size: 1.6rem; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .tab-btn.active { border-color: #e94560; background: rgba(233,69,96,0.15); color: #ff8fa3; }
+
+    .game-area {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    /* 2048 */
+    #board2048 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+      aspect-ratio: 1;
+      margin: 16px 0;
+    }
+    .tile-2048 {
+      background: rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.3rem;
+    }
+    .score-line { font-size: 1.1rem; margin-bottom: 8px; }
+    .score-line b { color: #ff8fa3; }
+
+    /* 타이핑 */
+    .typing-target {
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 1.2rem;
+      margin: 16px 0;
+      line-height: 1.6;
+    }
+    .typing-target span.correct { color: #4ade80; }
+    .typing-target span.wrong { color: #ff8fa3; text-decoration: underline; }
+    #typingInput {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+    }
+
+    /* 스네이크 */
+    #snakeCanvas {
+      background: #0f0f1e;
+      border-radius: 8px;
+      margin: 16px 0;
+      touch-action: none;
+    }
+    .snake-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(2, 50px);
+      gap: 6px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .snake-controls button {
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .action-btn {
+      margin-top: 12px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .leaderboard {
+      width: 100%;
+      max-width: 400px;
+      margin-top: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .leaderboard-title { font-size: 0.8rem; color: #9090a8; margin-bottom: 10px; letter-spacing: 1px; }
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .leaderboard-rank { color: #ff8fa3; font-weight: bold; margin-right: 8px; }
+
+    .login-required { text-align: center; color: #9999b3; margin-top: 60px; }
+    .login-required a { color: #ff8fa3; }
+    .hidden { display: none !important; }
+
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) {
+      .float-chat-panel { width: calc(100vw - 48px); right: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/games/">← 게임으로</a>
+  </div>
+
+  <h1>🏆 랭킹 게임</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="arcadeApp" class="hidden" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchGame('2048')">2048</button>
+      <button class="tab-btn" onclick="switchGame('typing')">타이핑</button>
+      <button class="tab-btn" onclick="switchGame('snake')">스네이크</button>
+    </div>
+
+    <div class="game-area" id="game2048" >
+      <div class="score-line">점수: <b id="score2048">0</b></div>
+      <div id="board2048"></div>
+      <button class="action-btn" onclick="init2048()">🔄 새 게임</button>
+    </div>
+
+    <div class="game-area hidden" id="gameTyping">
+      <div class="score-line">WPM: <b id="wpmTyping">0</b></div>
+      <div class="typing-target" id="typingTarget"></div>
+      <input type="text" id="typingInput" placeholder="여기에 타이핑하세요" oninput="onTypingInput()">
+      <button class="action-btn" onclick="initTyping()">🔄 새 문장</button>
+    </div>
+
+    <div class="game-area hidden" id="gameSnake">
+      <div class="score-line">점수: <b id="scoreSnake">0</b></div>
+      <canvas id="snakeCanvas" width="300" height="300"></canvas>
+      <div class="snake-controls">
+        <div></div>
+        <button onclick="setSnakeDir(0,-1)">⬆️</button>
+        <div></div>
+        <button onclick="setSnakeDir(-1,0)">⬅️</button>
+        <button onclick="setSnakeDir(0,1)">⬇️</button>
+        <button onclick="setSnakeDir(1,0)">➡️</button>
+      </div>
+      <button class="action-btn" onclick="initSnake()">🔄 새 게임</button>
+    </div>
+
+    <div class="leaderboard">
+      <div class="leaderboard-title" id="leaderboardTitle">🏆 2048 랭킹 TOP 10</div>
+      <div id="leaderboardList"></div>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('arcadeApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('arcadeApp').classList.remove('hidden');
+      return true;
+    }
+
+    let currentGame = '2048';
+    const gameNames = { '2048': '2048', 'typing': '타이핑', 'snake': '스네이크' };
+
+    function switchGame(game) {
+      currentGame = game;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('game2048').classList.add('hidden');
+      document.getElementById('gameTyping').classList.add('hidden');
+      document.getElementById('gameSnake').classList.add('hidden');
+      if (game === '2048') { document.getElementById('game2048').classList.remove('hidden'); init2048(); }
+      if (game === 'typing') { document.getElementById('gameTyping').classList.remove('hidden'); initTyping(); }
+      if (game === 'snake') { document.getElementById('gameSnake').classList.remove('hidden'); initSnake(); }
+      document.getElementById('leaderboardTitle').textContent = `🏆 ${gameNames[game]} 랭킹 TOP 10`;
+      loadLeaderboard(game);
+    }
+
+    async function submitScore(game, score) {
+      try {
+        await fetch('/api/travel/game-scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify({ game, score })
+        });
+        loadLeaderboard(game);
+      } catch (err) {}
+    }
+
+    async function loadLeaderboard(game) {
+      try {
+        const res = await fetch(`/api/travel/game-scores/${game}`);
+        const data = await res.json();
+        const listEl = document.getElementById('leaderboardList');
+        if (data.length === 0) {
+          listEl.innerHTML = '<div style="color:#7a7a92; font-size:0.85rem;">아직 기록이 없어요</div>';
+          return;
+        }
+        listEl.innerHTML = data.map((r, i) => `
+          <div class="leaderboard-item">
+            <span><span class="leaderboard-rank">${i+1}.</span>${r.username}</span>
+            <span>${r.score}</span>
+          </div>
+        `).join('');
+      } catch (err) {}
+    }
+
+    // ===== 2048 =====
+    let board2048 = [];
+    function init2048() {
+      board2048 = Array.from({length:4}, () => Array(4).fill(0));
+      addRandomTile2048();
+      addRandomTile2048();
+      document.getElementById('score2048').textContent = '0';
+      render2048();
+    }
+    function addRandomTile2048() {
+      const empty = [];
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) if (board2048[r][c]===0) empty.push([r,c]);
+      if (empty.length===0) return;
+      const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+      board2048[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+    function render2048() {
+      const el = document.getElementById('board2048');
+      el.innerHTML = '';
+      let score = 0;
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+        const val = board2048[r][c];
+        score += val;
+        const tile = document.createElement('div');
+        tile.className = 'tile-2048';
+        tile.textContent = val || '';
+        if (val) {
+          const hue = 340 - Math.min(Math.log2(val)*15, 200);
+          tile.style.background = `hsl(${hue}, 60%, 45%)`;
+        }
+        el.appendChild(tile);
+      }
+    }
+    function move2048(dir) {
+      let moved = false;
+      let scoreGain = 0;
+      const rotate = (b) => b[0].map((_, c) => b.map(row => row[c]));
+      let b = board2048.map(r => [...r]);
+      const slideRow = (row) => {
+        let arr = row.filter(v => v !== 0);
+        for (let i=0;i<arr.length-1;i++) {
+          if (arr[i] === arr[i+1]) {
+            arr[i] *= 2;
+            scoreGain += arr[i];
+            arr[i+1] = 0;
+          }
+        }
+        arr = arr.filter(v => v !== 0);
+        while (arr.length < 4) arr.push(0);
+        return arr;
+      };
+      if (dir === 'left') { b = b.map(row => slideRow(row)); }
+      if (dir === 'right') { b = b.map(row => slideRow(row.slice().reverse()).reverse()); }
+      if (dir === 'up') { b = rotate(b); b = b.map(row => slideRow(row)); b = rotate(b); }
+      if (dir === 'down') { b = rotate(b); b = b.map(row => slideRow(row.slice().reverse()).reverse()); b = rotate(b); }
+      moved = JSON.stringify(b) !== JSON.stringify(board2048);
+      board2048 = b;
+      if (moved) {
+        addRandomTile2048();
+        render2048();
+        const cur = parseInt(document.getElementById('score2048').textContent) + scoreGain;
+        document.getElementById('score2048').textContent = cur;
+        if (isGameOver2048()) submitScore('2048', cur);
+      }
+    }
+    function isGameOver2048() {
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+        if (board2048[r][c] === 0) return false;
+        if (c<3 && board2048[r][c] === board2048[r][c+1]) return false;
+        if (r<3 && board2048[r][c] === board2048[r+1][c]) return false;
+      }
+      return true;
+    }
+    document.addEventListener('keydown', (e) => {
+      if (currentGame !== '2048') return;
+      if (e.key === 'ArrowLeft') move2048('left');
+      if (e.key === 'ArrowRight') move2048('right');
+      if (e.key === 'ArrowUp') move2048('up');
+      if (e.key === 'ArrowDown') move2048('down');
+    });
+
+    // ===== 타이핑 =====
+    const typingSentences = [
+      '오늘도 좋은 하루 되세요',
+      '빠른 갈색 여우가 게으른 개를 뛰어넘는다',
+      '프로그래밍은 문제를 해결하는 예술이다',
+      '작은 습관이 큰 변화를 만든다',
+      '지금 이 순간에 최선을 다하자',
+    ];
+    let typingText = '';
+    let typingStartTime = null;
+    function initTyping() {
+      typingText = typingSentences[Math.floor(Math.random() * typingSentences.length)];
+      typingStartTime = null;
+      document.getElementById('typingInput').value = '';
+      document.getElementById('wpmTyping').textContent = '0';
+      renderTypingTarget('');
+    }
+    function renderTypingTarget(typed) {
+      const target = document.getElementById('typingTarget');
+      let html = '';
+      for (let i=0;i<typingText.length;i++) {
+        if (i < typed.length) {
+          html += `<span class="${typed[i] === typingText[i] ? 'correct' : 'wrong'}">${typingText[i]}</span>`;
+        } else {
+          html += typingText[i];
+        }
+      }
+      target.innerHTML = html;
+    }
+    function onTypingInput() {
+      const typed = document.getElementById('typingInput').value;
+      if (!typingStartTime) typingStartTime = Date.now();
+      renderTypingTarget(typed);
+      if (typed === typingText) {
+        const elapsedMin = (Date.now() - typingStartTime) / 60000;
+        const words = typingText.length / 5;
+        const wpm = Math.round(words / Math.max(elapsedMin, 0.01));
+        document.getElementById('wpmTyping').textContent = wpm;
+        submitScore('typing', wpm);
+      }
+    }
+
+    // ===== 스네이크 =====
+    let snakeState = null;
+    let snakeInterval = null;
+    function initSnake() {
+      if (snakeInterval) clearInterval(snakeInterval);
+      snakeState = {
+        snake: [[7,7],[6,7],[5,7]],
+        dir: [1,0],
+        nextDir: [1,0],
+        food: [10,10],
+        score: 0,
+        over: false,
+      };
+      document.getElementById('scoreSnake').textContent = '0';
+      renderSnake();
+      snakeInterval = setInterval(tickSnake, 150);
+    }
+    function setSnakeDir(dx, dy) {
+      if (!snakeState) return;
+      if (snakeState.dir[0] === -dx && snakeState.dir[1] === -dy) return;
+      snakeState.nextDir = [dx, dy];
+    }
+    document.addEventListener('keydown', (e) => {
+      if (currentGame !== 'snake') return;
+      if (e.key === 'ArrowUp') setSnakeDir(0,-1);
+      if (e.key === 'ArrowDown') setSnakeDir(0,1);
+      if (e.key === 'ArrowLeft') setSnakeDir(-1,0);
+      if (e.key === 'ArrowRight') setSnakeDir(1,0);
+    });
+    function tickSnake() {
+      if (!snakeState || snakeState.over) return;
+      snakeState.dir = snakeState.nextDir;
+      const head = snakeState.snake[0];
+      const newHead = [head[0] + snakeState.dir[0], head[1] + snakeState.dir[1]];
+      if (newHead[0] < 0 || newHead[0] >= 20 || newHead[1] < 0 || newHead[1] >= 20 ||
+          snakeState.snake.some(s => s[0]===newHead[0] && s[1]===newHead[1])) {
+        snakeState.over = true;
+        clearInterval(snakeInterval);
+        submitScore('snake', snakeState.score);
+        return;
+      }
+      snakeState.snake.unshift(newHead);
+      if (newHead[0] === snakeState.food[0] && newHead[1] === snakeState.food[1]) {
+        snakeState.score += 10;
+        document.getElementById('scoreSnake').textContent = snakeState.score;
+        placeSnakeFood();
+      } else {
+        snakeState.snake.pop();
+      }
+      renderSnake();
+    }
+    function placeSnakeFood() {
+      let pos;
+      do {
+        pos = [Math.floor(Math.random()*20), Math.floor(Math.random()*20)];
+      } while (snakeState.snake.some(s => s[0]===pos[0] && s[1]===pos[1]));
+      snakeState.food = pos;
+    }
+    function renderSnake() {
+      const canvas = document.getElementById('snakeCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0f0f1e';
+      ctx.fillRect(0,0,300,300);
+      const cell = 15;
+      ctx.fillStyle = '#e94560';
+      ctx.fillRect(snakeState.food[0]*cell, snakeState.food[1]*cell, cell-1, cell-1);
+      snakeState.snake.forEach((s, i) => {
+        ctx.fillStyle = i===0 ? '#4ade80' : '#22c55e';
+        ctx.fillRect(s[0]*cell, s[1]*cell, cell-1, cell-1);
+      });
+      if (snakeState.over) {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0,0,300,300);
+        ctx.fillStyle = 'white';
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('게임 종료!', 150, 150);
+      }
+    }
+
+    if (checkAuth()) {
+      init2048();
+      loadLeaderboard('2048');
+    }
+
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) connectFloatChat();
+    }
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+      floatChatSocket.onopen = () => { document.getElementById('floatChatMessages').innerHTML = ''; };
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => { const p = document.getElementById('floatChatPanel'); if (p.classList.contains('active')) connectFloatChat(); }, 3000);
+      };
+    }
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

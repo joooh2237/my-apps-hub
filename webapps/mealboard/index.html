@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>식단 화이트보드</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #f0fdf4 0%, #ecfdf5 100%);
+      color: #1e293b;
+      margin: 0;
+      padding: 24px 16px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 760px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .top-bar a { color: #16a34a; text-decoration: none; font-size: 0.85rem; font-weight: bold; }
+    .week-nav { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+    .week-nav button { background: white; border: 1px solid #d1fae5; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: bold; color: #16a34a; }
+    h1 { font-size: 1.4rem; margin: 0 0 18px; color: #14532d; align-self: flex-start; max-width: 760px; width: 100%; }
+    .wrap { width: 100%; max-width: 760px; }
+
+    .board-row { display: grid; gap: 12px; margin-bottom: 12px; }
+    .board-row.weekday-row { grid-template-columns: repeat(5, 1fr); }
+    .board-row.weekend-row { grid-template-columns: repeat(2, 1fr); max-width: 340px; }
+    @media (max-width: 700px) {
+      .board-row.weekday-row { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      .board-row.weekend-row { max-width: none; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    }
+    .day-date { font-size: 0.72rem; color: #64748b; font-weight: normal; }
+    .day-card {
+      background: white; border-radius: 16px; border: 1px solid #d1fae5;
+      padding: 16px; box-shadow: 0 2px 8px rgba(22,163,74,0.06);
+    }
+    .day-card.weekend { border-color: #fbcfe8; background: #fdf4ff; }
+    .day-title { font-size: 1rem; font-weight: 800; margin-bottom: 12px; color: #14532d; }
+    .day-card.weekend .day-title { color: #86198f; }
+
+    .slot-box { margin-bottom: 10px; }
+    .slot-label { font-size: 0.72rem; color: #64748b; font-weight: bold; margin-bottom: 4px; }
+    .slot-input-row { display: flex; gap: 6px; }
+    .slot-input-row input {
+      flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid #d1d5db;
+      font-size: 0.85rem; outline: none;
+    }
+    .slot-input-row input:focus { border-color: #16a34a; }
+    .slot-save-btn {
+      padding: 8px 10px; border-radius: 8px; border: none; background: #16a34a; color: white;
+      font-size: 0.75rem; font-weight: bold; cursor: pointer;
+    }
+    .slot-filled {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #f0fdf4; border-radius: 8px; padding: 8px 10px; font-size: 0.85rem;
+    }
+    .day-card.weekend .slot-filled { background: #fdf2f8; }
+    .slot-menu-text { font-weight: bold; cursor: pointer; }
+    .slot-author { font-size: 0.68rem; color: #94a3b8; margin-left: 6px; }
+    .slot-delete-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; }
+
+    .ingredient-panel {
+      background: white; border-radius: 12px; border: 1px solid #d1fae5; padding: 14px;
+      margin-top: 6px; font-size: 0.8rem; display: none;
+    }
+    .ingredient-panel.active { display: block; }
+    .ingredient-panel-title { font-weight: bold; color: #16a34a; margin-bottom: 6px; }
+    .ingredient-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ingredient-chip { background: #f0fdf4; border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; color: #166534; }
+    .ingredient-empty { color: #94a3b8; font-size: 0.75rem; }
+
+    .recommend-section {
+      background: white; border-radius: 16px; border: 1px solid #d1fae5; padding: 18px; margin-top: 8px;
+    }
+    .recommend-title { font-size: 0.95rem; font-weight: bold; color: #14532d; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .recommend-btn { background: #16a34a; color: white; border: none; border-radius: 8px; padding: 8px 14px; font-size: 0.78rem; font-weight: bold; cursor: pointer; }
+    .recommend-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .recommend-chip { background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; color: #166534; }
+    .recommend-empty { color: #94a3b8; font-size: 0.8rem; }
+
+    .login-required { text-align: center; margin-top: 60px; color: #64748b; }
+    .login-required a { color: #16a34a; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ 이전주</button>
+      <span id="weekLabel">이번주</span>
+      <button onclick="changeWeek(1)">다음주 ▶</button>
+    </div>
+  </div>
+  <h1>🍽️ 식단 화이트보드</h1>
+
+  <div id="loginRequired" class="login-required" style="display:none;">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="mainWrap" class="wrap">
+    <div class="board-row weekday-row" id="weekdayRow"></div>
+    <div class="board-row weekend-row" id="weekendRow"></div>
+
+    <div class="recommend-section">
+      <div class="recommend-title">
+        <span>✨ 다음주 추천 메뉴</span>
+        <button class="recommend-btn" onclick="loadRecommendation()">추천받기</button>
+      </div>
+      <div class="recommend-chips" id="recommendChips"><span class="recommend-empty">버튼을 눌러 추천을 받아보세요</span></div>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+    function authHeadersJson() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+    function isLoggedIn() { return !!getToken(); }
+
+    if (!isLoggedIn()) {
+      document.getElementById('loginRequired').style.display = 'block';
+    } else {
+      document.getElementById('mainWrap').style.display = 'block';
+    }
+
+    const DAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'];
+    let currentWeekOffset = 0;
+    let boardEntries = [];
+    let ingredientCache = {};
+
+    function getMondayOfWeek(offset) {
+      const now = new Date();
+      const day = now.getDay(); // 0=일 ~ 6=토
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday + offset * 7);
+      return monday;
+    }
+
+    function formatDate(date) {
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function changeWeek(delta) {
+      currentWeekOffset += delta;
+      document.getElementById('weekLabel').textContent = currentWeekOffset === 0 ? '이번주' : (currentWeekOffset > 0 ? `${currentWeekOffset}주 후` : `${-currentWeekOffset}주 전`);
+      loadBoard();
+    }
+
+    function buildDayCard(d, dateLabel) {
+      const isWeekend = d >= 5;
+      const slots = isWeekend ? ['lunch', 'dinner'] : ['dinner'];
+      let html = `<div class="day-card ${isWeekend ? 'weekend' : ''}">
+        <div class="day-title">${DAY_NAMES[d]}요일 <span class="day-date">${dateLabel}</span></div>`;
+      for (const slot of slots) {
+        const slotLabel = slot === 'lunch' ? '점심' : '저녁';
+        const entry = boardEntries.find(e => e.day_of_week === d && e.slot === slot);
+        html += `<div class="slot-box">
+          <div class="slot-label">${slotLabel}</div>`;
+        if (entry) {
+          html += `
+            <div class="slot-filled">
+              <span class="slot-menu-text" onclick="toggleIngredients(${d}, '${slot}', '${entry.menu.replace(/'/g, "&#39;")}', ${entry.servings})">${entry.menu} <span class="slot-author">${entry.author}</span></span>
+              <button class="slot-delete-btn" onclick="deleteEntry(${entry.id})">✕</button>
+            </div>
+            <div class="ingredient-panel" id="ing_${d}_${slot}"></div>
+          `;
+        } else {
+          html += `
+            <div class="slot-input-row">
+              <input type="text" id="input_${d}_${slot}" placeholder="메뉴 입력" onkeypress="if(event.key==='Enter') saveEntry(${d}, '${slot}')">
+              <button class="slot-save-btn" onclick="saveEntry(${d}, '${slot}')">추가</button>
+            </div>
+          `;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    function renderBoard() {
+      const monday = getMondayOfWeek(currentWeekOffset);
+      const weekdayRow = document.getElementById('weekdayRow');
+      const weekendRow = document.getElementById('weekendRow');
+      let weekdayHtml = '';
+      let weekendHtml = '';
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + d);
+        const dateLabel = formatDate(date);
+        const cardHtml = buildDayCard(d, dateLabel);
+        if (d < 5) weekdayHtml += cardHtml;
+        else weekendHtml += cardHtml;
+      }
+      weekdayRow.innerHTML = weekdayHtml;
+      weekendRow.innerHTML = weekendHtml;
+    }
+
+    async function loadBoard() {
+      try {
+        const res = await fetch(`/api/travel/mealboard?week_offset=${currentWeekOffset}`, { headers: authHeaders() });
+        if (!res.ok) return;
+        const result = await res.json();
+        boardEntries = result.entries || [];
+        renderBoard();
+      } catch (e) {}
+    }
+
+    async function saveEntry(day, slot) {
+      const input = document.getElementById(`input_${day}_${slot}`);
+      const menu = input.value.trim();
+      if (!menu) return;
+      try {
+        await fetch('/api/travel/mealboard', {
+          method: 'POST', headers: authHeadersJson(),
+          body: JSON.stringify({ day_of_week: day, slot: slot, menu: menu, servings: 2 })
+        });
+        await loadBoard();
+      } catch (e) {}
+    }
+
+    async function deleteEntry(id) {
+      try {
+        await fetch(`/api/travel/mealboard/${id}`, { method: 'DELETE', headers: authHeaders() });
+        await loadBoard();
+      } catch (e) {}
+    }
+
+    async function toggleIngredients(day, slot, menu, servings) {
+      const panelId = `ing_${day}_${slot}`;
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+      if (panel.classList.contains('active')) {
+        panel.classList.remove('active');
+        return;
+      }
+      const cacheKey = `${menu}_${servings}`;
+      if (ingredientCache[cacheKey]) {
+        renderIngredientPanel(panel, ingredientCache[cacheKey]);
+        panel.classList.add('active');
+        return;
+      }
+      panel.innerHTML = '<span class="ingredient-empty">불러오는 중...</span>';
+      panel.classList.add('active');
+      try {
+        const res = await fetch(`/api/travel/mealboard/ingredients?menu=${encodeURIComponent(menu)}&servings=${servings}`, { headers: authHeaders() });
+        const data = await res.json();
+        ingredientCache[cacheKey] = data;
+        renderIngredientPanel(panel, data);
+      } catch (e) {
+        panel.innerHTML = '<span class="ingredient-empty">재료 정보를 불러오지 못했어요</span>';
+      }
+    }
+
+    function renderIngredientPanel(panel, data) {
+      if (!data.found) {
+        panel.innerHTML = `
+          <div class="ingredient-panel-title">🛒 필요 재료</div>
+          <span class="ingredient-empty">등록되지 않은 메뉴예요. 재료 정보가 없어요.</span>
+        `;
+        return;
+      }
+      panel.innerHTML = `
+        <div class="ingredient-panel-title">🛒 필요 재료 (2인분 기준)</div>
+        <div class="ingredient-list">
+          ${data.ingredients.map(i => `<span class="ingredient-chip">${i}</span>`).join('')}
+        </div>
+      `;
+    }
+
+    async function loadRecommendation() {
+      const box = document.getElementById('recommendChips');
+      box.innerHTML = '<span class="recommend-empty">추천 메뉴를 고르는 중...</span>';
+      try {
+        const res = await fetch('/api/travel/mealboard/recommend', { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.recommendations || data.recommendations.length === 0) {
+          box.innerHTML = '<span class="recommend-empty">추천할 메뉴가 없어요</span>';
+          return;
+        }
+        box.innerHTML = data.recommendations.map(m => `<span class="recommend-chip">${m}</span>`).join('');
+      } catch (e) {
+        box.innerHTML = '<span class="recommend-empty">추천에 실패했어요</span>';
+      }
+    }
+
+    if (isLoggedIn()) {
+      loadBoard();
+    }
+  </script>
+</body>
+</html>

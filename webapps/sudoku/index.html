@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FY2026_Q3_GL_Reconciliation_Master_v4.2.xlsx</title>
+  <style>
+    :root {
+      --bg-top: #217346;
+      --bg-ribbon: #f3f2f1;
+      --bg-toolbar: #ffffff;
+      --border-color: #e1dfdd;
+      --border-dark: #c8c6c4;
+      --text-main: #000000;
+      --cell-bg: #ffffff;
+      --header-bg: #2f5597;
+      --header-text: #ffffff;
+      --cell-hover: #e8f5e9;
+      --cell-select: #107c41;
+      --memo-text: #888888;
+    }
+
+    body.dark-mode {
+      --bg-top: #107c41;
+      --bg-ribbon: #252526;
+      --bg-toolbar: #1e1e1e;
+      --border-color: #333333;
+      --border-dark: #444444;
+      --text-main: #d4d4d4;
+      --cell-bg: #1e1e1e;
+      --header-bg: #113264;
+      --header-text: #d4d4d4;
+      --cell-hover: #2d3748;
+      --cell-select: #0078d4;
+      --memo-text: #aaaaaa;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', 'Calibri', sans-serif; margin: 0; padding: 0; user-select: none; }
+    body { background: var(--cell-bg); color: var(--text-main); overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-size: 11px; transition: background 0.2s; }
+    
+    .excel-top { background: var(--bg-top); color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; font-size: 12px; }
+    .top-left { display: flex; align-items: center; gap: 10px; }
+    .top-icons span { display: inline-block; width: 14px; height: 14px; border: 1px solid rgba(255,255,255,0.7); border-radius: 2px; text-align: center; line-height: 12px; font-size: 9px; cursor: pointer; }
+    
+    .ribbon { background: var(--bg-ribbon); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; }
+    .tabs { display: flex; padding-top: 3px; padding-left: 5px; }
+    .tab { padding: 3px 10px; font-size: 11px; color: var(--text-main); cursor: pointer; }
+    .tab.active { background: var(--bg-toolbar); color: var(--bg-top); font-weight: bold; border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-left: 1px solid var(--border-color); margin-bottom: -1px; z-index: 1; }
+    .toolbar { background: var(--bg-toolbar); padding: 4px 10px; display: flex; gap: 12px; align-items: center; font-size: 10px; color: var(--text-main); border-bottom: 1px solid var(--border-color); height: 42px; }
+    .tool-group { display: flex; gap: 6px; border-right: 1px solid var(--border-color); padding-right: 10px; align-items: center; }
+
+    .theme-btn, .memo-btn { background: var(--bg-ribbon); color: var(--text-main); border: 1px solid var(--border-dark); padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .memo-btn.active { background: #eab308; color: #000; border-color: #ca8a04; }
+
+    .formula-bar { display: flex; align-items: center; background: var(--bg-toolbar); border-bottom: 1px solid var(--border-color); height: 24px; font-size: 11px; }
+    .name-box { width: 70px; padding: 0 6px; border-right: 1px solid var(--border-color); text-align: center; font-weight: 600; color: var(--text-main); }
+    .fx-btn { padding: 0 6px; color: var(--text-main); font-style: italic; font-weight: bold; border-right: 1px solid var(--border-color); }
+    .formula-input { flex: 1; padding: 0 8px; color: var(--bg-top); font-family: 'Consolas', monospace; outline: none; }
+
+    .grid-container { flex: 1; overflow: auto; display: flex; background: var(--border-color); position: relative; }
+    .row-headers { display: flex; flex-direction: column; background: var(--bg-ribbon); border-right: 1px solid var(--border-dark); width: 32px; flex-shrink: 0; }
+    .row-head { height: 22px; border-bottom: 1px solid var(--border-dark); text-align: center; line-height: 21px; font-size: 10px; color: var(--text-main); }
+    
+    .grid-content { display: flex; flex-direction: column; background: var(--cell-bg); }
+    .col-headers { display: flex; background: var(--bg-ribbon); border-bottom: 1px solid var(--border-dark); height: 22px; }
+    .col-head { width: 55px; border-right: 1px solid var(--border-dark); text-align: center; line-height: 21px; font-size: 10px; color: var(--text-main); flex-shrink: 0; font-weight: 600; }
+    
+    .row { display: flex; height: 22px; }
+    .cell { width: 55px; height: 22px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); text-align: right; padding-right: 4px; line-height: 21px; font-size: 11px; color: var(--text-main); flex-shrink: 0; outline: none; overflow: hidden; white-space: nowrap; position: relative; }
+    
+    .cell.tbl-header { background: var(--header-bg); color: var(--header-text); font-weight: bold; text-align: center; }
+    .cell.label-cell { background: var(--bg-ribbon); font-weight: 600; text-align: left; padding-left: 4px; color: var(--text-main); }
+    .cell.dummy-data { text-align: center; color: var(--text-main); opacity: 0.7; }
+
+    .cell.sudoku-cell { text-align: center; padding-right: 0; font-size: 11px; cursor: cell; }
+    .cell.sudoku-cell.fixed { color: var(--text-main); font-weight: bold; }
+    .cell.sudoku-cell.user-input { color: #0078d4; font-weight: bold; }
+
+    .memo-grid { position: absolute; top:0; left:0; width:100%; height:100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); pointer-events: none; font-size: 7px; line-height: 7px; color: var(--memo-text); text-align: center; }
+    .memo-num { display: flex; align-items: center; justify-content: center; }
+
+    .b-top { border-top: 1.5px solid var(--header-bg) !important; }
+    .b-left { border-left: 1.5px solid var(--header-bg) !important; }
+    .b-right { border-right: 1.5px solid var(--header-bg) !important; }
+    .b-bottom { border-bottom: 1.5px solid var(--header-bg) !important; }
+
+    .cell.selected { border: 2px solid var(--cell-select) !important; box-shadow: inset 0 0 0 1px var(--cell-bg); z-index: 10; }
+
+    .sheet-tabs { display: flex; background: var(--bg-ribbon); border-top: 1px solid var(--border-dark); height: 28px; align-items: flex-end; padding-left: 10px; gap: 2px; }
+    .sheet-tab { background: var(--border-color); border: 1px solid var(--border-dark); border-bottom: none; padding: 3px 10px; font-size: 10px; color: var(--text-main); cursor: pointer; }
+    .sheet-tab.active { background: var(--cell-bg); font-weight: 600; color: var(--bg-top); border-bottom: 1px solid var(--cell-bg); }
+    .status-bar { background: var(--bg-ribbon); height: 20px; border-top: 1px solid var(--border-dark); font-size: 10px; color: var(--text-main); display: flex; align-items: center; padding: 0 10px; justify-content: space-between; }
+    
+    .clear-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #107c41; color: white; padding: 25px 45px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 22px; font-weight: bold; text-align: center; z-index: 999; border: 2px solid #fff; }
+  </style>
+</head>
+<body>
+
+  <div class="excel-top">
+    <div class="top-left">
+      <div class="top-icons"><span>S</span> <span>💾</span> <span>↺</span></div>
+      <div style="font-weight:600;">FY2026_Q3_GL_Reconciliation_Master_v4.2.xlsx - Excel</div>
+    </div>
+    <div><span>_</span> <span>□</span> <span>✕</span></div>
+  </div>
+
+  <div class="ribbon">
+    <div class="tabs">
+      <div class="tab">File</div><div class="tab active">Home</div><div class="tab">Insert</div><div class="tab">Page Layout</div><div class="tab">Formulas</div><div class="tab">Data</div>
+    </div>
+    <div class="toolbar">
+      <div class="tool-group">
+        <button class="theme-btn" onclick="toggleTheme()">🌓 Theme: Light/Dark</button>
+        <button class="memo-btn" id="memoToggleBtn" onclick="toggleMemoMode()">✏️ Memo Mode (Shift/N)</button>
+      </div>
+      <div class="tool-group"><span style="font-weight:bold;">Calibri</span> <span>11</span> <b>B</b> <i>I</i> <u>U</u></div>
+      <div class="tool-group" style="border:none;"><span>Conditional Formatting</span> <span>Format as Table</span></div>
+    </div>
+  </div>
+
+  <div class="formula-bar">
+    <div class="name-box" id="nameBox">H10</div>
+    <div class="fx-btn">fx</div>
+    <div class="formula-input" id="formulaInput">=ROUND(INDEX($H$10:$P$18, ROW()-9, COL()-7), 0)</div>
+  </div>
+
+  <div class="grid-container">
+    <div class="row-headers" id="rowHeaders"></div>
+    <div class="grid-content">
+      <div class="col-headers" id="colHeaders"></div>
+      <div id="cellsArea"></div>
+    </div>
+  </div>
+
+  <div class="sheet-tabs" id="sheetTabs"></div>
+  
+  <div class="status-bar">
+    <div><span id="statusTxt">Ready</span></div>
+    <div>AVERAGE: 5.1 | COUNT: 142 | SUM: 8,421 | 100% 🎚</div>
+  </div>
+
+  <div class="clear-modal" id="clearModal">
+    🎉 CLEAR! <br>
+    <span style="font-size: 13px; font-weight: normal; opacity: 0.9;">All Data Audits Validated Successfully</span>
+  </div>
+
+<script>
+  const COLS = 26; 
+  const ROWS = 45; 
+  const colNames = Array.from({length: COLS}, (_, i) => String.fromCharCode(65 + i));
+
+  const START_R = 9; 
+  const START_C = 7;
+
+  let currentLevel = 1;
+  let solution = [];
+  let puzzle = [];
+  let memos = {}; 
+  let selectedR = 9, selectedC = 7;
+  let isMemoMode = false;
+
+  document.getElementById('rowHeaders').innerHTML = '<div class="row-head" style="background:var(--bg-ribbon); border-bottom:1px solid var(--border-dark);"></div>' + 
+    Array.from({length: ROWS}, (_, i) => `<div class="row-head">${i+1}</div>`).join('');
+  document.getElementById('colHeaders').innerHTML = colNames.map(c => `<div class="col-head">${c}</div>`).join('');
+
+  let html = '';
+  for(let r=0; r<ROWS; r++) {
+    html += '<div class="row">';
+    for(let c=0; c<COLS; c++) {
+      let cellId = `${colNames[c]}${r+1}`;
+      html += `<div class="cell" id="cell-${r}-${c}" data-id="${cellId}" onclick="selectCell(${r},${c})"></div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('cellsArea').innerHTML = html;
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+  }
+
+  function toggleMemoMode() {
+    isMemoMode = !isMemoMode;
+    const btn = document.getElementById('memoToggleBtn');
+    if(isMemoMode) btn.classList.add('active');
+    else btn.classList.remove('active');
+  }
+
+  function initSudoku() {
+    document.getElementById('clearModal').style.display = 'none';
+    memos = {};
+    
+    const base = [
+      [1,2,3, 4,5,6, 7,8,9], [4,5,6, 7,8,9, 1,2,3], [7,8,9, 1,2,3, 4,5,6],
+      [2,3,1, 5,6,4, 8,9,7], [5,6,4, 8,9,7, 2,3,1], [8,9,7, 2,3,1, 5,6,4],
+      [3,1,2, 6,4,5, 9,7,8], [6,4,5, 9,7,8, 3,1,2], [9,7,8, 3,1,2, 6,4,5]
+    ];
+    let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+    solution = base.map(row => row.map(val => nums[val-1]));
+    
+    let holes = 12 + (currentLevel * 4);
+    puzzle = solution.map(row => [...row]);
+    
+    let removed = 0;
+    while(removed < holes) {
+      let r = Math.floor(Math.random() * 9);
+      let c = Math.floor(Math.random() * 9);
+      if(puzzle[r][c] !== '') { puzzle[r][c] = ''; removed++; }
+    }
+    drawDenseReport();
+  }
+
+  function drawDenseReport() {
+    const colTitles = ['Tx_ID', 'Date', 'Dept', 'Region', 'Status', 'Auditor', 'OpEx', 'Metric_1', 'Metric_2', 'Metric_3', 'Metric_4', 'Metric_5', 'Metric_6', 'Metric_7', 'Metric_8', 'Metric_9', 'Gross', 'Tax', 'Net', 'Var%', 'Code1', 'Code2', 'Ref1', 'Ref2', 'End1', 'End2'];
+    colTitles.forEach((title, idx) => setCell(1, idx, title, 'tbl-header'));
+
+    for(let r=2; r<ROWS; r++) {
+      setCell(r, 0, `TX-${1000 + r}`, 'label-cell');
+      setCell(r, 1, `2026-08-${(r%28)+1}`);
+      setCell(r, 2, `CC-00${(r%5)+1}`);
+      setCell(r, 3, ['APAC','EMEA','AMER','LATAM'][r%4]);
+      setCell(r, 4, ['APPROVED','PENDING','REVIEWED'][r%3]);
+      setCell(r, 5, ['J.Mason','K.Park','S.Lee'][r%3]);
+      setCell(r, 6, '$' + ((r)*150).toLocaleString());
+      
+      setCell(r, 16, '$' + ((r+1)*1240).toLocaleString());
+      setCell(r, 17, '10.0%');
+      setCell(r, 18, '$' + ((r+1)*1116).toLocaleString());
+      setCell(r, 19, (r%3===0 ? '+12%' : '-4%'));
+      setCell(r, 20, `GL-${4010 + r}`);
+      setCell(r, 21, `SUB-${r}`);
+      setCell(r, 22, `REF-${r*2}`);
+      setCell(r, 23, `OK`);
+      setCell(r, 24, `CHK`);
+      setCell(r, 25, `DONE`);
+
+      for(let c=START_C; c<START_C+9; c++) {
+        let el = document.getElementById(`cell-${r}-${c}`);
+        el.className = 'cell dummy-data';
+        el.textContent = Math.floor(Math.random() * 9) + 1; 
+      }
+    }
+
+    for(let i=0; i<9; i++) {
+      for(let j=0; j<9; j++) {
+        let el = document.getElementById(`cell-${START_R + i}-${START_C + j}`);
+        el.className = 'cell sudoku-cell';
+        
+        if(i === 0) el.classList.add('b-top');
+        if(i === 8) el.classList.add('b-bottom');
+        if(j === 0) el.classList.add('b-left');
+        if(j === 8) el.classList.add('b-right');
+        if(i === 2 || i === 5) el.classList.add('b-bottom');
+        if(j === 2 || j === 5) el.classList.add('b-right');
+
+        let val = puzzle[i][j];
+        if(val !== '') {
+          el.setAttribute('data-val', val);
+          el.textContent = val;
+          el.classList.add('fixed');
+        } else {
+          el.removeAttribute('data-val');
+          el.textContent = '';
+          el.classList.add('user-input');
+          renderMemo(el, i, j);
+        }
+      }
+    }
+    selectCell(selectedR, selectedC);
+    checkWin();
+  }
+
+  function renderMemo(cellEl, r, c) {
+    let oldGrid = cellEl.querySelector('.memo-grid');
+    if(oldGrid) oldGrid.remove();
+
+    let key = `${r}_${c}`;
+    if(memos[key] && memos[key].length > 0 && !cellEl.getAttribute('data-val')) {
+      let grid = document.createElement('div');
+      grid.className = 'memo-grid';
+      for(let n=1; n<=9; n++) {
+        let div = document.createElement('div');
+        div.className = 'memo-num';
+        div.textContent = memos[key].includes(n) ? n : '';
+        grid.appendChild(div);
+      }
+      cellEl.appendChild(grid);
+    }
+  }
+
+  function setCell(r, c, val, className) {
+    let el = document.getElementById(`cell-${r}-${c}`);
+    if(el) {
+      el.textContent = val;
+      if(className) el.className = `cell ${className}`;
+    }
+  }
+
+  function selectCell(r, c) {
+    document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+    let el = document.getElementById(`cell-${r}-${c}`);
+    if(el) {
+      el.classList.add('selected');
+      selectedR = r; selectedC = c;
+      document.getElementById('nameBox').textContent = el.getAttribute('data-id');
+      
+      let val = el.getAttribute('data-val') || '';
+      if(r >= START_R && r < START_R+9 && c >= START_C && c < START_C+9) {
+        document.getElementById('formulaInput').textContent = `=INT(AVERAGE($A$${r+1}:$G$${r+1}) * 0.001) + ${val || 0}`;
+      } else {
+        document.getElementById('formulaInput').textContent = el.textContent ? `=VLOOKUP(${el.getAttribute('data-id')}, Data!A:Z, 2, FALSE)` : '';
+      }
+    }
+  }
+
+  function getSudokuVal(r, c) {
+    let el = document.getElementById(`cell-${START_R + r}-${START_C + c}`);
+    if(!el) return 0;
+    let v = el.getAttribute('data-val');
+    if(v) return parseInt(v, 10);
+    return 0;
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'N' || e.key === 'n') { toggleMemoMode(); return; }
+
+    if(e.key === 'ArrowUp') selectCell(Math.max(0, selectedR-1), selectedC);
+    if(e.key === 'ArrowDown') selectCell(Math.min(ROWS-1, selectedR+1), selectedC);
+    if(e.key === 'ArrowLeft') selectCell(selectedR, Math.max(0, selectedC-1));
+    if(e.key === 'ArrowRight') selectCell(selectedR, Math.min(COLS-1, selectedC+1));
+
+    if(selectedR >= START_R && selectedR < START_R+9 && selectedC >= START_C && selectedC < START_C+9) {
+      let sr = selectedR - START_R;
+      let sc = selectedC - START_C;
+      let el = document.getElementById(`cell-${selectedR}-${selectedC}`);
+      
+      if(puzzle[sr][sc] !== '') return;
+
+      let isMemo = isMemoMode || e.shiftKey;
+
+      if(e.key >= '1' && e.key <= '9') {
+        let num = parseInt(e.key, 10);
+        let key = `${sr}_${sc}`;
+        
+        if(isMemo) {
+          if(!memos[key]) memos[key] = [];
+          let idx = memos[key].indexOf(num);
+          if(idx > -1) memos[key].splice(idx, 1);
+          else memos[key].push(num);
+          
+          el.removeAttribute('data-val');
+          el.textContent = '';
+          renderMemo(el, sr, sc);
+        } else {
+          memos[key] = [];
+          let oldGrid = el.querySelector('.memo-grid');
+          if(oldGrid) oldGrid.remove();
+          
+          el.setAttribute('data-val', num);
+          el.textContent = num;
+          
+          checkWin();
+        }
+      }
+      
+      if(e.key === 'Backspace' || e.key === 'Delete') {
+        let key = `${sr}_${sc}`;
+        memos[key] = [];
+        el.removeAttribute('data-val');
+        el.textContent = '';
+        renderMemo(el, sr, sc);
+        checkWin();
+      }
+    }
+  });
+
+  // 동적 해검증 (Row, Col, Box 중복 판별)
+  function checkWin() {
+    let grid = [];
+    for(let r = 0; r < 9; r++) {
+      let row = [];
+      for(let c = 0; c < 9; c++) {
+        let num = getSudokuVal(r, c);
+        if(num < 1 || num > 9) return;
+        row.push(num);
+      }
+      grid.push(row);
+    }
+
+    for(let r = 0; r < 9; r++) {
+      if(new Set(grid[r]).size !== 9) return;
+    }
+
+    for(let c = 0; c < 9; c++) {
+      let col = [];
+      for(let r = 0; r < 9; r++) col.push(grid[r][c]);
+      if(new Set(col).size !== 9) return;
+    }
+
+    for(let br = 0; br < 3; br++) {
+      for(let bc = 0; bc < 3; bc++) {
+        let box = [];
+        for(let r = br*3; r < br*3+3; r++) {
+          for(let c = bc*3; c < bc*3+3; c++) {
+            box.push(grid[r][c]);
+          }
+        }
+        if(new Set(box).size !== 9) return;
+      }
+    }
+
+    document.getElementById('clearModal').style.display = 'block';
+    document.getElementById('statusTxt').textContent = `[CLEAR] Level ${currentLevel} Sudoku Completed!`;
+    document.getElementById('statusTxt').style.color = '#107c41';
+    document.getElementById('statusTxt').style.fontWeight = 'bold';
+  }
+
+  const tabsDiv = document.getElementById('sheetTabs');
+  const sheetNames = ['GL_Summary', 'Tx_Logs', 'Audits', 'Metric_Matrix_Lv1', 'Metric_Matrix_Lv2', 'Metric_Matrix_Lv3', 'Metric_Matrix_Lv4', 'Metric_Matrix_Lv5', 'Metric_Matrix_Lv6', 'Final_Recon_Lv10'];
+  
+  sheetNames.forEach((sName, idx) => {
+    let div = document.createElement('div');
+    div.className = 'sheet-tab';
+    if(idx === 3) div.classList.add('active');
+    div.textContent = sName;
+    div.onclick = () => {
+      document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+      div.classList.add('active');
+      currentLevel = Math.min(10, idx + 1);
+      initSudoku();
+    };
+    tabsDiv.appendChild(div);
+  });
+
+  initSudoku();
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포트폴리오 작성</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #0a0f1e 100%);
+      color: #e2e8f0;
+      margin: 0;
+      padding: 24px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 720px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .top-bar a { color: #93c5fd; text-decoration: none; font-size: 0.85rem; }
+    .save-status { font-size: 0.75rem; color: #64748b; }
+    h1 { font-size: 1.4rem; margin: 0 0 18px; color: #f8fafc; align-self: flex-start; max-width: 720px; width: 100%; }
+    .wrap { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+
+    .personal-banner {
+      background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 14px; padding: 14px 18px; font-size: 0.85rem; color: #cbd5e1;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;
+    }
+    .personal-banner b { color: #f1f5f9; font-size: 0.95rem; }
+    .personal-banner a { color: #93c5fd; font-size: 0.75rem; text-decoration: none; }
+
+    .section {
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px;
+    }
+    .section-title {
+      font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .project-card {
+      background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 18px; margin-bottom: 14px; position: relative;
+    }
+    .project-remove {
+      position: absolute; top: 12px; right: 12px; background: rgba(239,68,68,0.12);
+      color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+      font-size: 0.7rem; padding: 3px 8px; cursor: pointer;
+    }
+    label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; margin-top: 10px; }
+    label:first-child { margin-top: 0; }
+    input[type=text], input[type=url], textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(15,23,42,0.7); color: #f1f5f9; font-size: 0.88rem; outline: none; font-family: inherit;
+    }
+    input:focus, textarea:focus { border-color: #3b82f6; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .skills-input-row { display: flex; gap: 8px; margin-top: 6px; }
+    .skills-input-row input { flex: 1; }
+    .skills-add-btn { padding: 0 14px; border-radius: 8px; border: none; background: #2563eb; color: white; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+    .skill-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .skill-chip {
+      background: rgba(59,130,246,0.15); color: #93c5fd; padding: 5px 10px 5px 12px;
+      border-radius: 20px; font-size: 0.76rem; display: flex; align-items: center; gap: 6px;
+    }
+    .skill-chip button { background: none; border: none; color: #93c5fd; cursor: pointer; font-size: 0.85rem; padding: 0; }
+
+    .achievement-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+    .achievement-row input { flex: 1; }
+    .achievement-remove { background: rgba(239,68,68,0.12); color: #f87171; border: none; border-radius: 6px; padding: 8px 10px; cursor: pointer; font-size: 0.75rem; flex-shrink: 0; }
+    .achievement-add {
+      margin-top: 4px; padding: 7px 12px; border-radius: 8px; border: 1px dashed rgba(59,130,246,0.4);
+      background: rgba(59,130,246,0.06); color: #93c5fd; font-size: 0.75rem; cursor: pointer;
+    }
+
+    .add-project-btn {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px dashed rgba(59,130,246,0.4);
+      background: rgba(59,130,246,0.06); color: #93c5fd; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
+    .add-project-btn:hover { background: rgba(59,130,246,0.12); }
+
+    .empty-hint { text-align: center; color: #64748b; font-size: 0.8rem; padding: 20px 0; }
+
+    .download-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,15,30,0.95);
+      backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 16px; display: flex; gap: 10px; justify-content: center; z-index: 100;
+    }
+    .download-bar button {
+      padding: 12px 20px; border-radius: 10px; border: none; font-weight: bold; font-size: 0.85rem;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-save { background: #1e293b; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12) !important; }
+    .btn-pdf { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+    .btn-docx { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; }
+
+    .login-required { text-align: center; margin-top: 60px; color: #94a3b8; }
+    .login-required a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <span class="save-status" id="saveStatus"></span>
+  </div>
+  <h1>💼 포트폴리오 작성</h1>
+
+  <div id="loginRequired" class="login-required" style="display:none;">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="mainWrap" class="wrap">
+    <div class="personal-banner">
+      <span><b id="bannerName">-</b> · <span id="bannerContact"></span></span>
+      <a href="/resume/">이력서에서 인적사항 수정 →</a>
+    </div>
+
+    <div class="section">
+      <div class="section-title">프로젝트<button class="add-project-btn" style="width:auto; padding:6px 12px; font-size:0.75rem;" onclick="addProject()">+ 프로젝트 추가</button></div>
+      <div id="projectsList"></div>
+    </div>
+  </div>
+
+  <div class="download-bar" id="downloadBar" style="display:none;">
+    <button class="btn-save" onclick="savePortfolio(true)">💾 저장</button>
+    <button class="btn-pdf" onclick="downloadFile('pdf')">📕 PDF 다운로드</button>
+    <button class="btn-docx" onclick="downloadFile('docx')">📘 워드 다운로드</button>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+    function authHeadersJson() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+    function isLoggedIn() { return !!getToken(); }
+
+    if (!isLoggedIn()) {
+      document.getElementById('loginRequired').style.display = 'block';
+    } else {
+      document.getElementById('mainWrap').style.display = 'flex';
+      document.getElementById('downloadBar').style.display = 'flex';
+    }
+
+    let portfolioData = { projects: [] };
+
+    function addProject() {
+      portfolioData.projects.push({
+        title: '', period: '', role: '', skills: [], achievements: [''], link: '',
+      });
+      renderProjects();
+    }
+
+    function removeProject(idx) {
+      portfolioData.projects.splice(idx, 1);
+      renderProjects();
+    }
+
+    function updateProjectField(idx, key, value) {
+      portfolioData.projects[idx][key] = value;
+    }
+
+    function addSkillToProject(idx) {
+      const input = document.getElementById(`skillInput_${idx}`);
+      const val = input.value.trim();
+      if (!val) return;
+      if (!portfolioData.projects[idx].skills.includes(val)) {
+        portfolioData.projects[idx].skills.push(val);
+      }
+      input.value = '';
+      renderProjects();
+    }
+
+    function removeSkillFromProject(idx, skillIdx) {
+      portfolioData.projects[idx].skills.splice(skillIdx, 1);
+      renderProjects();
+    }
+
+    function addAchievement(idx) {
+      portfolioData.projects[idx].achievements.push('');
+      renderProjects();
+    }
+
+    function updateAchievement(idx, aIdx, value) {
+      portfolioData.projects[idx].achievements[aIdx] = value;
+    }
+
+    function removeAchievement(idx, aIdx) {
+      portfolioData.projects[idx].achievements.splice(aIdx, 1);
+      if (portfolioData.projects[idx].achievements.length === 0) {
+        portfolioData.projects[idx].achievements.push('');
+      }
+      renderProjects();
+    }
+
+    function renderProjects() {
+      const listEl = document.getElementById('projectsList');
+      const projects = portfolioData.projects;
+      if (projects.length === 0) {
+        listEl.innerHTML = '<div class="empty-hint">아직 추가된 프로젝트가 없어요. 위 + 버튼을 눌러 추가해주세요.</div>';
+        return;
+      }
+      listEl.innerHTML = projects.map((p, idx) => {
+        const skillChips = (p.skills || []).map((s, si) => `
+          <span class="skill-chip">${s}<button onclick="removeSkillFromProject(${idx},${si})">✕</button></span>
+        `).join('');
+        const achievementRows = (p.achievements || ['']).map((a, ai) => `
+          <div class="achievement-row">
+            <input type="text" value="${(a || '').replace(/"/g, '&quot;')}" placeholder="예: 처리 속도를 30% 개선"
+                   oninput="updateAchievement(${idx},${ai},this.value)">
+            <button class="achievement-remove" onclick="removeAchievement(${idx},${ai})">삭제</button>
+          </div>
+        `).join('');
+        return `
+          <div class="project-card">
+            <button class="project-remove" onclick="removeProject(${idx})">프로젝트 삭제</button>
+            <label>프로젝트명</label>
+            <input type="text" value="${(p.title || '').replace(/"/g, '&quot;')}" placeholder="예: 개인 웹서비스 허브 구축"
+                   oninput="updateProjectField(${idx},'title',this.value)">
+            <div class="field-row">
+              <div>
+                <label>기간</label>
+                <input type="text" value="${(p.period || '').replace(/"/g, '&quot;')}" placeholder="2026.01 - 2026.08"
+                       oninput="updateProjectField(${idx},'period',this.value)">
+              </div>
+              <div>
+                <label>역할</label>
+                <input type="text" value="${(p.role || '').replace(/"/g, '&quot;')}" placeholder="기획 · 개발 · 운영"
+                       oninput="updateProjectField(${idx},'role',this.value)">
+              </div>
+            </div>
+            <label>기술 스택</label>
+            <div class="skills-input-row">
+              <input type="text" id="skillInput_${idx}" placeholder="예: FastAPI (엔터로 추가)"
+                     onkeypress="if(event.key==='Enter'){event.preventDefault(); addSkillToProject(${idx});}">
+              <button class="skills-add-btn" onclick="addSkillToProject(${idx})">추가</button>
+            </div>
+            <div class="skill-chips">${skillChips}</div>
+            <label>주요 성과</label>
+            ${achievementRows}
+            <button class="achievement-add" onclick="addAchievement(${idx})">+ 성과 항목 추가</button>
+            <label>링크 (선택)</label>
+            <input type="url" value="${(p.link || '').replace(/"/g, '&quot;')}" placeholder="https://..."
+                   oninput="updateProjectField(${idx},'link',this.value)">
+          </div>
+        `;
+      }).join('');
+    }
+
+    let autosaveTimer = null;
+    function scheduleAutosave() {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = setTimeout(() => savePortfolio(false), 1500);
+    }
+    document.addEventListener('input', (e) => {
+      if (e.target.closest('#projectsList')) scheduleAutosave();
+    });
+
+    async function savePortfolio(manual) {
+      const statusEl = document.getElementById('saveStatus');
+      statusEl.textContent = manual ? '저장 중...' : '';
+      try {
+        const res = await fetch('/api/travel/portfolio', {
+          method: 'POST', headers: authHeadersJson(), body: JSON.stringify({ data: portfolioData })
+        });
+        if (res.ok) {
+          statusEl.textContent = manual ? '✓ 저장되었어요' : '✓ 자동 저장됨';
+          setTimeout(() => { statusEl.textContent = ''; }, 2000);
+        } else {
+          statusEl.textContent = '저장 실패';
+        }
+      } catch (e) {
+        statusEl.textContent = '저장 실패';
+      }
+    }
+
+    async function downloadFile(type) {
+      await savePortfolio(false);
+      try {
+        const res = await fetch(`/api/travel/portfolio/download/${type}`, { headers: authHeaders() });
+        if (!res.ok) { alert('다운로드에 실패했어요. 먼저 프로젝트를 추가하고 저장해주세요.'); return; }
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        let filename = `포트폴리오.${type}`;
+        const match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) filename = decodeURIComponent(match[1]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('다운로드에 실패했어요.');
+      }
+    }
+
+    async function loadPortfolio() {
+      try {
+        const res = await fetch('/api/travel/portfolio', { headers: authHeaders() });
+        if (!res.ok) return;
+        const result = await res.json();
+        if (result.data && result.data.projects) {
+          portfolioData = result.data;
+        }
+        const personal = result.personal || {};
+        document.getElementById('bannerName').textContent = personal.name || '이름 미입력';
+        const contactParts = [personal.phone, personal.email].filter(Boolean);
+        document.getElementById('bannerContact').textContent = contactParts.length > 0
+          ? contactParts.join(' · ')
+          : '이력서에서 연락처를 먼저 입력해주세요';
+        renderProjects();
+      } catch (e) {}
+    }
+
+    if (isLoggedIn()) {
+      loadPortfolio();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이력서 작성</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #0a0f1e 100%);
+      color: #e2e8f0;
+      margin: 0;
+      padding: 24px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 720px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .top-bar a { color: #93c5fd; text-decoration: none; font-size: 0.85rem; }
+    .save-status { font-size: 0.75rem; color: #64748b; }
+    h1 { font-size: 1.4rem; margin: 0 0 18px; color: #f8fafc; align-self: flex-start; max-width: 720px; width: 100%; }
+    .wrap { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+
+    .section {
+      background: rgba(30, 41, 59, 0.6);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 20px;
+    }
+    details.section { padding: 0; overflow: hidden; }
+    details.section > summary {
+      list-style: none; cursor: pointer; padding: 20px; user-select: none;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    details.section > summary::-webkit-details-marker { display: none; }
+    details.section > summary::after {
+      content: '▾'; color: #64748b; font-size: 0.9rem; margin-left: 8px; transition: transform 0.2s; flex-shrink: 0;
+    }
+    details.section[open] > summary::after { transform: rotate(180deg); }
+    details.section > summary .section-title { margin-bottom: 0; border-bottom: none; padding-bottom: 0; flex: 1; }
+    details.section > .accordion-body { padding: 0 20px 20px 20px; }
+    .section-title {
+      font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;
+    }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .field-row.single { grid-template-columns: 1fr; }
+    label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+    input[type=text], input[type=email], input[type=tel], textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(15,23,42,0.7); color: #f1f5f9; font-size: 0.88rem; outline: none; font-family: inherit;
+    }
+    input:focus, textarea:focus { border-color: #3b82f6; }
+    textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+    .item-card {
+      background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px; position: relative;
+    }
+    .item-remove {
+      position: absolute; top: 10px; right: 10px; background: rgba(239,68,68,0.12);
+      color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+      font-size: 0.7rem; padding: 3px 8px; cursor: pointer;
+    }
+    .item-copy {
+      position: absolute; top: 10px; right: 68px; background: rgba(59,130,246,0.12);
+      color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); border-radius: 6px;
+      font-size: 0.7rem; padding: 3px 8px; cursor: pointer;
+    }
+    .add-btn {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px dashed rgba(59,130,246,0.4);
+      background: rgba(59,130,246,0.06); color: #93c5fd; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    }
+    .add-btn:hover { background: rgba(59,130,246,0.12); }
+
+    .skills-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .skills-input-row input { flex: 1; }
+    .skills-add-btn { padding: 0 16px; border-radius: 8px; border: none; background: #2563eb; color: white; font-weight: bold; cursor: pointer; }
+    .skill-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .skill-chip {
+      background: rgba(59,130,246,0.15); color: #93c5fd; padding: 5px 10px 5px 12px;
+      border-radius: 20px; font-size: 0.78rem; display: flex; align-items: center; gap: 6px;
+    }
+    .skill-chip button { background: none; border: none; color: #93c5fd; cursor: pointer; font-size: 0.85rem; padding: 0; }
+
+    .char-count { text-align: right; font-size: 0.7rem; color: #64748b; margin-top: 4px; }
+    .char-count.over { color: #f87171; font-weight: bold; }
+
+    .download-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,15,30,0.95);
+      backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 16px; display: flex; gap: 10px; justify-content: center; z-index: 100;
+    }
+    .download-bar button {
+      padding: 12px 20px; border-radius: 10px; border: none; font-weight: bold; font-size: 0.85rem;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-save { background: #1e293b; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12) !important; }
+    .btn-pdf { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+    .btn-docx { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; }
+    .btn-cl-pdf { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; }
+    .btn-cl-docx { background: linear-gradient(135deg, #059669, #047857); color: white; }
+    .btn-ro-pdf { background: linear-gradient(135deg, #ea580c, #c2410c); color: white; }
+    .btn-ro-docx { background: linear-gradient(135deg, #0891b2, #0e7490); color: white; }
+    .btn-co-pdf { background: linear-gradient(135deg, #4f46e5, #4338ca); color: white; }
+    .btn-co-docx { background: linear-gradient(135deg, #16a34a, #15803d); color: white; }
+    .download-divider { width: 1px; background: rgba(255,255,255,0.15); margin: 4px 2px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .empty-hint { text-align: center; color: #64748b; font-size: 0.8rem; padding: 10px 0; }
+    .login-required { text-align: center; margin-top: 60px; color: #94a3b8; }
+    .login-required a { color: #93c5fd; }
+    .upload-card {
+      background: rgba(59,130,246,0.08); border: 1px dashed rgba(59,130,246,0.35);
+      border-radius: 16px; padding: 18px 20px; text-align: center;
+    }
+    .upload-card p { font-size: 0.8rem; color: #94a3b8; margin: 6px 0 12px; }
+    .upload-btn-label {
+      display: inline-block; padding: 10px 20px; border-radius: 8px; background: #2563eb;
+      color: white; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+    }
+    .upload-btn-label input { display: none; }
+    .upload-status { font-size: 0.78rem; margin-top: 10px; }
+    .upload-status.loading { color: #93c5fd; }
+    .upload-status.success { color: #4ade80; }
+    .upload-status.error { color: #f87171; }
+    .version-bar {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap;
+      background: rgba(15,23,42,0.5); border-radius: 10px; padding: 10px 12px;
+    }
+    .version-bar select {
+      flex: 1; min-width: 140px; padding: 7px 10px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(30,41,59,0.8); color: #f1f5f9; font-size: 0.8rem; outline: none;
+    }
+    .version-bar button {
+      padding: 7px 12px; border-radius: 7px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-version-load { background: #1e293b; color: #93c5fd; border: 1px solid rgba(147,197,253,0.3) !important; }
+    .btn-version-save { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; }
+    .btn-version-delete { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.3) !important; }
+    .version-status { font-size: 0.72rem; color: #64748b; width: 100%; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <span class="save-status" id="saveStatus"></span>
+  </div>
+  <h1>📄 이력서 작성</h1>
+
+  <div id="loginRequired" class="login-required" style="display:none;">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="mainWrap" class="wrap">
+    <div class="upload-card">
+      <div style="font-size:1.5rem;">📎</div>
+      <p>기존에 갖고 있던 PDF 이력서를 업로드하면 자동으로 항목을 채워드려요.<br>(자동 분류는 완벽하지 않을 수 있으니 확인 후 수정해주세요)</p>
+      <label class="upload-btn-label">PDF 파일 선택
+        <input type="file" id="pdfUploadInput" accept="application/pdf" onchange="handlePdfUpload(event)">
+      </label>
+      <div class="upload-status" id="uploadStatus"></div>
+    </div>
+
+    <details class="section" open>
+      <summary><div class="section-title">인적사항</div></summary>
+      <div class="accordion-body">
+      <div class="field-row">
+        <div><label>이름</label><input type="text" id="p_name" placeholder="홍길동"></div>
+        <div><label>생년월일</label><input type="text" id="p_birth" placeholder="1998.01.01"></div>
+      </div>
+      <div class="field-row">
+        <div><label>연락처</label><input type="tel" id="p_phone" placeholder="010-1234-5678"></div>
+        <div><label>이메일</label><input type="email" id="p_email" placeholder="example@email.com"></div>
+      </div>
+      <div class="field-row single">
+        <div><label>주소</label><input type="text" id="p_address" placeholder="서울특별시 ○○구 ○○동"></div>
+      </div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><div class="section-title">학력<button class="add-btn" style="width:auto; padding:6px 12px; font-size:0.75rem;" onclick="event.preventDefault(); event.stopPropagation(); addItem('education')">+ 추가</button></div></summary>
+      <div class="accordion-body">
+      <div id="educationList"></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><div class="section-title">경력<button class="add-btn" style="width:auto; padding:6px 12px; font-size:0.75rem;" onclick="event.preventDefault(); event.stopPropagation(); addItem('career')">+ 추가</button></div></summary>
+      <div class="accordion-body">
+      <div id="careerList"></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><div class="section-title">자격증 / 어학<button class="add-btn" style="width:auto; padding:6px 12px; font-size:0.75rem;" onclick="event.preventDefault(); event.stopPropagation(); addItem('certificates')">+ 추가</button></div></summary>
+      <div class="accordion-body">
+      <div id="certificatesList"></div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><div class="section-title">기술 스택</div></summary>
+      <div class="accordion-body">
+      <div class="skills-input-row">
+        <input type="text" id="skillInput" placeholder="예: Python (엔터로 추가)">
+        <button class="skills-add-btn" onclick="addSkill()">추가</button>
+      </div>
+      <div class="skill-chips" id="skillChips"></div>
+      <button class="add-btn" style="margin-top:10px;" onclick="copySkillsText()">📋 기술스택 전체 복사</button>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><div class="section-title">경력기술서 (프로젝트)<button class="add-btn" style="width:auto; padding:6px 12px; font-size:0.75rem;" onclick="event.preventDefault(); event.stopPropagation(); addItem('projects')">+ 추가</button></div></summary>
+      <div class="accordion-body">
+      <div id="projectsList"></div>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary><div class="section-title">자기소개서<button class="add-btn" style="width:auto; padding:6px 12px; font-size:0.75rem;" onclick="event.preventDefault(); event.stopPropagation(); addItem('coverLetter')">+ 문항 추가</button></div></summary>
+      <div class="accordion-body">
+      <div class="version-bar">
+        <select id="versionSelect" onchange="loadCoverLetterVersion()">
+          <option value="">기본(현재 작성중)</option>
+        </select>
+        <button class="btn-version-load" onclick="saveCoverLetterVersion()">💾 다른 이름으로 저장</button>
+        <button class="btn-version-delete" onclick="deleteCoverLetterVersion()">삭제</button>
+        <span class="version-status" id="versionStatus">회사별로 자소서를 저장해두고 나중에 불러올 수 있어요</span>
+      </div>
+      <div id="coverLetterList"></div>
+    </div>
+    </details>
+  </div>
+
+  <div class="download-bar" id="downloadBar" style="display:none;">
+    <button class="btn-save" onclick="saveResume(true)">💾 저장</button>
+    <button class="btn-pdf" onclick="downloadFile('pdf')">📕 PDF 다운로드</button>
+    <button class="btn-docx" onclick="downloadFile('docx')">📘 워드 다운로드</button>
+    <div class="download-divider"></div>
+    <button class="btn-ro-pdf" onclick="downloadResumeOnlyFile('pdf')">📄 이력서만 PDF</button>
+    <button class="btn-ro-docx" onclick="downloadResumeOnlyFile('docx')">📄 이력서만 워드</button>
+    <div class="download-divider"></div>
+    <button class="btn-co-pdf" onclick="downloadCareerOnlyFile('pdf')">💼 경력기술서만 PDF</button>
+    <button class="btn-co-docx" onclick="downloadCareerOnlyFile('docx')">💼 경력기술서만 워드</button>
+    <div class="download-divider"></div>
+    <button class="btn-cl-pdf" onclick="downloadCoverLetterFile('pdf')">📝 자소서만 PDF</button>
+    <button class="btn-cl-docx" onclick="downloadCoverLetterFile('docx')">📝 자소서만 워드</button>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+    function authHeadersJson() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+    function isLoggedIn() { return !!getToken(); }
+
+    if (!isLoggedIn()) {
+      document.getElementById('loginRequired').style.display = 'block';
+    } else {
+      document.getElementById('mainWrap').style.display = 'flex';
+      document.getElementById('downloadBar').style.display = 'flex';
+    }
+
+    let resumeData = {
+      personal: {},
+      education: [],
+      career: [],
+      certificates: [],
+      skills: [],
+      projects: [],
+      coverLetter: [],
+    };
+
+    const FIELD_CONFIG = {
+      education: [
+        { key: 'school', label: '학교명', placeholder: '○○대학교' },
+        { key: 'major', label: '전공', placeholder: '컴퓨터공학과' },
+        { key: 'period', label: '기간', placeholder: '2019.03 - 2023.02' },
+      ],
+      career: [
+        { key: 'company', label: '회사명', placeholder: '○○주식회사' },
+        { key: 'position', label: '직급/직무', placeholder: '백엔드 개발자' },
+        { key: 'period', label: '재직기간', placeholder: '2023.01 - 재직중' },
+        { key: 'description', label: '담당업무', placeholder: '주요 업무 내용을 작성해주세요', textarea: true },
+        { key: 'retireReason', label: '퇴직사유 (다운로드 시 제외됨)', placeholder: '예: 연봉 및 직무 확장을 위한 이직', textarea: true },
+      ],
+      certificates: [
+        { key: 'name', label: '자격증/어학명', placeholder: '정보처리기사' },
+        { key: 'date', label: '취득일', placeholder: '2023.06' },
+      ],
+      projects: [
+        { key: 'name', label: '프로젝트명', placeholder: '○○ 서비스 개발' },
+        { key: 'period', label: '기간', placeholder: '2024.01 - 2024.06' },
+        { key: 'description', label: '상세 내용', placeholder: '역할, 사용 기술, 성과 등을 작성해주세요', textarea: true },
+      ],
+      coverLetter: [
+        { key: 'question', label: '문항', placeholder: '예: 지원 동기를 작성해주세요' },
+        { key: 'answer', label: '답변', placeholder: '내용을 작성해주세요', textarea: true, charCount: true },
+      ],
+    };
+
+    function addItem(section) {
+      const blank = {};
+      FIELD_CONFIG[section].forEach(f => blank[f.key] = '');
+      resumeData[section].push(blank);
+      renderSection(section);
+    }
+
+    function removeItem(section, idx) {
+      resumeData[section].splice(idx, 1);
+      renderSection(section);
+    }
+
+    function updateItemField(section, idx, key, value) {
+      resumeData[section][idx][key] = value;
+      const el = document.getElementById(`count_${section}_${idx}_${key}`);
+      if (el) {
+        el.textContent = `${value.length}자`;
+        el.className = 'char-count' + (value.length > 1000 ? ' over' : '');
+      }
+    }
+
+    function renderSection(section) {
+      const listEl = document.getElementById(section + 'List');
+      const items = resumeData[section];
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="empty-hint">아직 추가된 항목이 없어요. 위 + 버튼을 눌러 추가해주세요.</div>';
+        return;
+      }
+      listEl.innerHTML = items.map((item, idx) => {
+        const fields = FIELD_CONFIG[section].map(f => {
+          const val = (item[f.key] || '').replace(/"/g, '&quot;');
+          if (f.textarea) {
+            const count = (item[f.key] || '').length;
+            return `
+              <div style="margin-bottom:8px;">
+                <label>${f.label}</label>
+                <textarea placeholder="${f.placeholder}" oninput="updateItemField('${section}',${idx},'${f.key}',this.value)">${item[f.key] || ''}</textarea>
+                ${f.charCount ? `<div class="char-count" id="count_${section}_${idx}_${f.key}">${count}자</div>` : ''}
+              </div>`;
+          }
+          return `
+            <div style="margin-bottom:8px;">
+              <label>${f.label}</label>
+              <input type="text" value="${val}" placeholder="${f.placeholder}" oninput="updateItemField('${section}',${idx},'${f.key}',this.value)">
+            </div>`;
+        }).join('');
+        return `<div class="item-card">
+          <button class="item-remove" onclick="removeItem('${section}',${idx})">삭제</button>
+          <button class="item-copy" onclick="copyItemText('${section}',${idx})">📋 복사</button>
+          ${fields}
+        </div>`;
+      }).join('');
+    }
+
+    function buildItemCopyText(section, item) {
+      if (section === 'education') {
+        return [item.school, item.major, item.period].filter(Boolean).join(' | ');
+      }
+      if (section === 'career') {
+        return item.description || '';
+      }
+      if (section === 'certificates') {
+        return [item.name, item.date].filter(Boolean).join(' | ');
+      }
+      if (section === 'projects') {
+        return item.description || '';
+      }
+      if (section === 'coverLetter') {
+        return item.answer || '';
+      }
+      return '';
+    }
+
+    function copyItemText(section, idx) {
+      const item = resumeData[section][idx];
+      const text = buildItemCopyText(section, item);
+      navigator.clipboard.writeText(text).then(() => {
+        showCopyToast(section, idx);
+      }).catch(() => {
+        alert('복사에 실패했어요. 브라우저 권한을 확인해주세요.');
+      });
+    }
+
+    function showCopyToast(section, idx) {
+      const btn = document.querySelector(`#${section}List .item-card:nth-child(${idx + 1}) .item-copy`);
+      if (!btn) return;
+      const original = btn.textContent;
+      btn.textContent = '✓ 복사됨';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    }
+
+    function copySkillsText() {
+      const text = resumeData.skills.join(', ');
+      navigator.clipboard.writeText(text).then(() => {
+        alert('기술스택이 복사되었어요');
+      }).catch(() => {
+        alert('복사에 실패했어요.');
+      });
+    }
+
+    function addSkill() {
+      const input = document.getElementById('skillInput');
+      const val = input.value.trim();
+      if (!val) return;
+      if (!resumeData.skills.includes(val)) resumeData.skills.push(val);
+      input.value = '';
+      renderSkills();
+    }
+
+    function removeSkill(idx) {
+      resumeData.skills.splice(idx, 1);
+      renderSkills();
+    }
+
+    function renderSkills() {
+      const box = document.getElementById('skillChips');
+      if (resumeData.skills.length === 0) {
+        box.innerHTML = '<span class="empty-hint" style="padding:0;">아직 추가된 기술이 없어요</span>';
+        return;
+      }
+      box.innerHTML = resumeData.skills.map((s, i) => `
+        <span class="skill-chip">${s}<button onclick="removeSkill(${i})">✕</button></span>
+      `).join('');
+    }
+
+    document.getElementById('skillInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addSkill(); }
+    });
+
+    function collectPersonal() {
+      resumeData.personal = {
+        name: document.getElementById('p_name').value,
+        birth: document.getElementById('p_birth').value,
+        phone: document.getElementById('p_phone').value,
+        email: document.getElementById('p_email').value,
+        address: document.getElementById('p_address').value,
+      };
+    }
+
+    ['p_name', 'p_birth', 'p_phone', 'p_email', 'p_address'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => { collectPersonal(); scheduleAutosave(); });
+    });
+
+    let autosaveTimer = null;
+    function scheduleAutosave() {
+      clearTimeout(autosaveTimer);
+      autosaveTimer = setTimeout(() => saveResume(false), 1500);
+    }
+
+    async function saveResume(manual) {
+      collectPersonal();
+      const statusEl = document.getElementById('saveStatus');
+      statusEl.textContent = manual ? '저장 중...' : '';
+      try {
+        const res = await fetch('/api/travel/resume', {
+          method: 'POST', headers: authHeadersJson(), body: JSON.stringify({ data: resumeData })
+        });
+        if (res.ok) {
+          statusEl.textContent = manual ? '✓ 저장되었어요' : '✓ 자동 저장됨';
+          setTimeout(() => { statusEl.textContent = ''; }, 2000);
+        } else {
+          statusEl.textContent = '저장 실패';
+        }
+      } catch (e) {
+        statusEl.textContent = '저장 실패';
+      }
+    }
+
+    async function downloadFile(type) {
+      collectPersonal();
+      await saveResume(false);
+      try {
+        const res = await fetch(`/api/travel/resume/download/${type}`, { headers: authHeaders() });
+        if (!res.ok) { alert('다운로드에 실패했어요. 먼저 내용을 입력하고 저장해주세요.'); return; }
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        let filename = `이력서.${type}`;
+        const match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) filename = decodeURIComponent(match[1]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('다운로드에 실패했어요.');
+      }
+    }
+
+    async function downloadCoverLetterFile(type) {
+      collectPersonal();
+      await saveResume(false);
+      try {
+        const res = await fetch(`/api/travel/resume/download/cover-letter/${type}`, { headers: authHeaders() });
+        if (!res.ok) { alert('다운로드에 실패했어요. 먼저 자기소개서를 입력하고 저장해주세요.'); return; }
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        let filename = `자기소개서.${type}`;
+        const match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) filename = decodeURIComponent(match[1]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('다운로드에 실패했어요.');
+      }
+    }
+
+    async function downloadResumeOnlyFile(type) {
+      collectPersonal();
+      await saveResume(false);
+      try {
+        const res = await fetch(`/api/travel/resume/download/resume-only/${type}`, { headers: authHeaders() });
+        if (!res.ok) { alert('다운로드에 실패했어요. 먼저 내용을 입력하고 저장해주세요.'); return; }
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        let filename = `이력서.${type}`;
+        const match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) filename = decodeURIComponent(match[1]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('다운로드에 실패했어요.');
+      }
+    }
+
+    async function downloadCareerOnlyFile(type) {
+      collectPersonal();
+      await saveResume(false);
+      try {
+        const res = await fetch(`/api/travel/resume/download/career-only/${type}`, { headers: authHeaders() });
+        if (!res.ok) { alert('다운로드에 실패했어요. 먼저 경력기술서를 입력하고 저장해주세요.'); return; }
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        let filename = `경력기술서.${type}`;
+        const match = disposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) filename = decodeURIComponent(match[1]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert('다운로드에 실패했어요.');
+      }
+    }
+
+    async function handlePdfUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById('uploadStatus');
+      statusEl.textContent = '분석 중이에요...';
+      statusEl.className = 'upload-status loading';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/travel/resume/parse-pdf', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          statusEl.textContent = err.detail || 'PDF 분석에 실패했어요.';
+          statusEl.className = 'upload-status error';
+          return;
+        }
+        const result = await res.json();
+        applyParsedData(result.data);
+        statusEl.textContent = '✓ 자동으로 채워넣었어요. 내용을 확인하고 수정해주세요!';
+        statusEl.className = 'upload-status success';
+        scheduleAutosave();
+      } catch (e) {
+        statusEl.textContent = 'PDF 분석 중 오류가 발생했어요.';
+        statusEl.className = 'upload-status error';
+      }
+      event.target.value = '';
+    }
+
+    function applyParsedData(parsed) {
+      if (!parsed) return;
+      const p = parsed.personal || {};
+      if (p.name) document.getElementById('p_name').value = p.name;
+      if (p.phone) document.getElementById('p_phone').value = p.phone;
+      if (p.email) document.getElementById('p_email').value = p.email;
+      collectPersonal();
+
+      ['education', 'career', 'certificates', 'projects', 'coverLetter'].forEach(section => {
+        if (parsed[section] && parsed[section].length > 0) {
+          resumeData[section] = resumeData[section].concat(parsed[section]);
+          renderSection(section);
+        }
+      });
+    }
+
+    async function loadVersionList() {
+      try {
+        const res = await fetch('/api/travel/resume/cover-letter-versions', { headers: authHeaders() });
+        if (!res.ok) return;
+        const result = await res.json();
+        const select = document.getElementById('versionSelect');
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">기본(현재 작성중)</option>' +
+          result.versions.map(v => `<option value="${v.id}">${v.name} (${v.updated_at})</option>`).join('');
+        select.value = currentValue;
+      } catch (e) {}
+    }
+
+    async function loadCoverLetterVersion() {
+      const select = document.getElementById('versionSelect');
+      const versionId = select.value;
+      const statusEl = document.getElementById('versionStatus');
+      if (!versionId) {
+        statusEl.textContent = '회사별로 자소서를 저장해두고 나중에 불러올 수 있어요';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/travel/resume/cover-letter-versions/${versionId}`, { headers: authHeaders() });
+        if (!res.ok) { statusEl.textContent = '불러오기에 실패했어요'; return; }
+        const result = await res.json();
+        resumeData.coverLetter = result.coverLetter;
+        renderSection('coverLetter');
+        statusEl.textContent = `✓ "${result.name}" 버전을 불러왔어요. 이대로 저장하면 현재 자소서가 이 내용으로 바뀌어요.`;
+      } catch (e) {
+        statusEl.textContent = '불러오기에 실패했어요';
+      }
+    }
+
+    async function saveCoverLetterVersion() {
+      const name = prompt('저장할 버전 이름을 입력해주세요 (예: 현대오토에버용)');
+      if (!name || !name.trim()) return;
+      collectPersonal();
+      const statusEl = document.getElementById('versionStatus');
+      statusEl.textContent = '저장 중...';
+      try {
+        const res = await fetch('/api/travel/resume/cover-letter-versions', {
+          method: 'POST', headers: authHeadersJson(),
+          body: JSON.stringify({ name: name.trim(), coverLetter: resumeData.coverLetter })
+        });
+        if (res.ok) {
+          statusEl.textContent = `✓ "${name.trim()}" 이름으로 저장했어요`;
+          await loadVersionList();
+        } else {
+          statusEl.textContent = '저장에 실패했어요';
+        }
+      } catch (e) {
+        statusEl.textContent = '저장에 실패했어요';
+      }
+    }
+
+    async function deleteCoverLetterVersion() {
+      const select = document.getElementById('versionSelect');
+      const versionId = select.value;
+      const statusEl = document.getElementById('versionStatus');
+      if (!versionId) { statusEl.textContent = '삭제할 버전을 먼저 선택해주세요'; return; }
+      if (!confirm('이 버전을 삭제할까요? 되돌릴 수 없어요.')) return;
+      try {
+        await fetch(`/api/travel/resume/cover-letter-versions/${versionId}`, { method: 'DELETE', headers: authHeaders() });
+        statusEl.textContent = '✓ 삭제되었어요';
+        select.value = '';
+        await loadVersionList();
+      } catch (e) {
+        statusEl.textContent = '삭제에 실패했어요';
+      }
+    }
+
+    async function loadResume() {
+      try {
+        const res = await fetch('/api/travel/resume', { headers: authHeaders() });
+        if (!res.ok) return;
+        const result = await res.json();
+        if (result.data && Object.keys(result.data).length > 0) {
+          resumeData = Object.assign({
+            personal: {}, education: [], career: [], certificates: [], skills: [], projects: [], coverLetter: []
+          }, result.data);
+        }
+        const p = resumeData.personal || {};
+        document.getElementById('p_name').value = p.name || '';
+        document.getElementById('p_birth').value = p.birth || '';
+        document.getElementById('p_phone').value = p.phone || '';
+        document.getElementById('p_email').value = p.email || '';
+        document.getElementById('p_address').value = p.address || '';
+        ['education', 'career', 'certificates', 'projects', 'coverLetter'].forEach(renderSection);
+        renderSkills();
+        loadVersionList();
+      } catch (e) {}
+    }
+
+    if (isLoggedIn()) {
+      loadResume();
+    }
+  </script>
+</body>
+</html>

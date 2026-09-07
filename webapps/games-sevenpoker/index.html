@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>세븐포커</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>♠️</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #2b1a3e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 460px; display: flex; justify-content: flex-end; margin-bottom: 12px; font-size: 0.85rem; }
+    .top-bar a { color: #c7b3e0; text-decoration: none; }
+    h1 { margin: 0 0 16px; font-size: 1.5rem; }
+
+    .join-box { display: flex; gap: 8px; margin-bottom: 20px; width: 100%; max-width: 380px; }
+    .join-box input { flex: 1; padding: 12px 14px; border-radius: 10px; border: none; font-size: 0.95rem; }
+    .join-box button { padding: 12px 18px; border-radius: 10px; border: none; background: #e94560; color: white; font-weight: bold; cursor: pointer; }
+    .room-list-panel { width: 100%; max-width: 380px; margin-bottom: 16px; }
+    .room-list-title { font-size: 0.78rem; color: #c7b3e0; margin-bottom: 8px; letter-spacing: 1px; }
+    .room-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; margin-bottom: 6px; cursor: pointer; font-size: 0.85rem; }
+    .room-item:hover { background: rgba(255,255,255,0.12); }
+    .room-item.full { opacity: 0.5; cursor: not-allowed; }
+    .room-item-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; background: rgba(74,222,128,0.2); color: #4ade80; }
+    .room-item-badge.full { background: rgba(255,255,255,0.1); color: #c7b3e0; }
+    .room-list-empty { color: #8a6ba0; font-size: 0.8rem; text-align: center; padding: 10px 0; }
+
+    .layout { width: 100%; max-width: 460px; display: none; flex-direction: column; gap: 12px; }
+    .table { width: 100%; background: rgba(0,0,0,0.25); border-radius: 18px; padding: 20px; }
+    .opponent-row, .my-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
+    .chip-count { color: #ffd76a; font-weight: bold; }
+    .pot-line { text-align: center; font-size: 1rem; margin: 12px 0; color: #ffd76a; font-weight: bold; }
+    .street-line { text-align: center; font-size: 0.75rem; color: #a385c0; margin-bottom: 4px; }
+
+    .card-row { display: flex; gap: 6px; justify-content: center; margin: 14px 0; flex-wrap: wrap; min-height: 58px; }
+    .card2 {
+      width: 40px; height: 58px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 0.85rem;
+      opacity: 1; transform: none;
+    }
+    .card2.dealt { animation: dealIn3 0.4s ease; }
+    @keyframes dealIn3 {
+      from { opacity: 0; transform: translateY(-30px) rotate(-8deg); }
+      to { opacity: 1; transform: translateY(0) rotate(0deg); }
+    }
+    .card2.face { background: #fdfaf0; }
+    .card2.face.red { color: #d63652; }
+    .card2.face.black { color: #222; }
+    .card2.back { background: repeating-linear-gradient(45deg, #4a1f6a, #4a1f6a 4px, #5a2380 4px, #5a2380 8px); border: 2px solid #2f0f4a; }
+
+    .my-hand-name { text-align: center; font-size: 0.95rem; color: #ffd76a; font-weight: bold; margin-bottom: 4px; min-height: 1.3em; }
+    .status-text { text-align: center; font-size: 0.9rem; color: #c7b3e0; margin: 10px 0; min-height: 1.2em; }
+
+    .action-buttons { display: flex; gap: 6px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+    .action-buttons button { padding: 11px 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 0.82rem; }
+    .btn-bet { background: #e94560; color: white; }
+    .btn-check { background: rgba(255,255,255,0.15); color: white; }
+    .btn-fold { background: rgba(255,255,255,0.1); color: #c7b3e0; }
+    .btn-call { background: #4ade80; color: #062; }
+    .btn-raise { background: #ffb020; color: #402800; }
+
+    .result-banner { text-align: center; margin-top: 14px; padding: 14px; background: rgba(255,255,255,0.08); border-radius: 12px; display: none; }
+    .result-banner .win-text { font-size: 1.1rem; font-weight: bold; color: #ffd76a; margin-bottom: 6px; }
+    .next-hand-btn, .start-btn { margin-top: 12px; padding: 12px 22px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; display: none; }
+    .next-hand-btn { background: #e94560; color: white; }
+    .start-btn { background: #4ade80; color: #062; }
+
+    .rank-panel { width: 100%; background: rgba(255,255,255,0.06); border-radius: 14px; padding: 14px 16px; }
+    .rank-panel-title { font-size: 0.78rem; color: #d0b3e0; letter-spacing: 1px; margin-bottom: 8px; }
+    .rank-list { font-size: 0.78rem; line-height: 1.9; color: #e6d9f0; }
+    .rank-list .tier-label { color: #ffd76a; font-weight: bold; margin-right: 4px; }
+
+    /* 버튼 눌리는 느낌 */
+    .action-buttons button, .start-btn, .next-hand-btn, .join-box button {
+      transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+    .action-buttons button:hover, .start-btn:hover, .next-hand-btn:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 0 14px rgba(255,255,255,0.25);
+    }
+    .action-buttons button:active, .start-btn:active, .next-hand-btn:active, .join-box button:active {
+      transform: scale(0.93);
+      filter: brightness(0.9);
+    }
+
+    @keyframes turnGlow {
+      0%, 100% { box-shadow: 0 0 0px rgba(255,215,106,0.0); }
+      50% { box-shadow: 0 0 14px rgba(255,215,106,0.7); }
+    }
+    .my-turn-active {
+      animation: turnGlow 1.4s ease-in-out infinite;
+      border-radius: 8px;
+      padding: 2px 8px;
+      background: rgba(255,215,106,0.1);
+    }
+
+    @keyframes valuePulse {
+      0% { transform: scale(1); color: #ffd76a; }
+      40% { transform: scale(1.35); color: #4ade80; }
+      100% { transform: scale(1); color: #ffd76a; }
+    }
+    .value-pulse { display: inline-block; animation: valuePulse 0.6s ease; }
+
+    @keyframes bannerPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .result-banner.pop { animation: bannerPop 0.5s cubic-bezier(.34,1.56,.64,1); }
+    .confetti-text {
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+      animation: confettiFloat 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes confettiFloat {
+      from { transform: translateY(0); }
+      to { transform: translateY(-4px); }
+    }
+
+    @keyframes cardFlip {
+      0% { transform: rotateY(90deg); }
+      100% { transform: rotateY(0deg); }
+    }
+    .card2.flip { animation: cardFlip 0.35s ease; }
+
+    .login-required { text-align: center; color: #c7b3e0; margin-top: 60px; }
+    .login-required a { color: #ffd76a; }
+    .hidden { display: none !important; }
+
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) { .float-chat-panel { width: calc(100vw - 48px); right: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="top-bar"><a href="/games/">← 게임으로</a></div>
+  <h1>♠️ 세븐포커 (가상포인트)</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="pokerApp" class="hidden" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+    <div class="room-list-panel">
+      <div class="room-list-title">📋 활성화된 방</div>
+      <div id="roomListItems"></div>
+    </div>
+    <div class="join-box" id="joinBox">
+      <input type="text" id="roomIdInput" placeholder="방 코드 (예: room1)">
+      <button onclick="joinPokerRoom()">입장</button>
+    </div>
+
+    <div class="layout" id="layout">
+      <div class="table">
+        <div class="opponent-row">
+          <span id="opponentName">상대 대기중...</span>
+          <span class="chip-count" id="opponentChips">-</span>
+        </div>
+        <div class="card-row" id="opponentCards"></div>
+
+        <div class="street-line" id="streetLine"></div>
+        <div class="pot-line" id="potLine">판돈: 0</div>
+
+        <div class="my-hand-name" id="myHandName"></div>
+        <div class="card-row" id="myCards"></div>
+        <div class="my-row">
+          <span id="myName">나</span>
+          <span class="chip-count" id="myChips">-</span>
+        </div>
+
+        <div class="status-text" id="statusText"></div>
+        <div class="action-buttons" id="actionButtons"></div>
+
+        <div class="result-banner" id="resultBanner">
+          <div class="win-text" id="winText"></div>
+          <div id="handNames" style="font-size:0.85rem; color:#c7b3e0;"></div>
+        </div>
+
+        <div style="text-align:center;">
+          <button class="start-btn" id="aiBtn" onclick="requestAI()" style="display:none; background:#8a5cf7; color:white;">🤖 AI와 대결하기</button>
+          <button class="start-btn" id="startBtn" onclick="startHand()">🎲 게임 시작</button>
+          <button class="next-hand-btn" id="nextHandBtn" onclick="startHand()">▶️ 다음 판</button>
+        </div>
+      </div>
+
+      <div class="rank-panel">
+        <div class="rank-panel-title">📖 포커 족보 (높은 순) · 진행 방식</div>
+        <div class="rank-list">
+          스트레이트플러시 &gt; 포카드 &gt; 풀하우스 &gt; 플러시 &gt; 스트레이트 &gt; 트리플 &gt; 투페어 &gt; 원페어 &gt; 하이카드<br><br>
+          <span class="tier-label">•</span>2장 히든 + 1장 오픈으로 시작, 이후 1장씩 받으며 매번 베팅<br>
+          <span class="tier-label">•</span>오픈카드가 낮은/약한 사람이 선공 (브링인)<br>
+          <span class="tier-label">•</span>마지막 7번째 카드는 히든
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('pokerApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('pokerApp').classList.remove('hidden');
+      return true;
+    }
+
+    async function loadRoomList() {
+      try {
+        const res = await fetch('/api/travel/sevenpoker/rooms', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const rooms = await res.json();
+        const listEl = document.getElementById('roomListItems');
+        if (rooms.length === 0) {
+          listEl.innerHTML = '<div class="room-list-empty">아직 열린 방이 없어요. 새로 만들어보세요!</div>';
+          return;
+        }
+        listEl.innerHTML = rooms.map(r => {
+          const isFull = r.player_count >= 2;
+          const badge = isFull ? '<span class="room-item-badge full">진행중</span>' : '<span class="room-item-badge">대기중</span>';
+          return `
+            <div class="room-item ${isFull ? 'full' : ''}" onclick="${isFull ? '' : `quickJoin('${r.room_id}')`}">
+              <span>♠️ ${r.room_id} (${r.players.join(', ')})</span>
+              ${badge}
+            </div>
+          `;
+        }).join('');
+      } catch (err) {}
+    }
+
+    function quickJoin(roomId) {
+      document.getElementById('roomIdInput').value = roomId;
+      joinPokerRoom();
+    }
+
+    let pokerSocket = null;
+    let mySeat = null;
+    let lastHandKey = '';
+    let lastChips = {};
+    let lastPot = null;
+
+    function pulseValue(el) {
+      el.classList.remove('value-pulse');
+      void el.offsetWidth;
+      el.classList.add('value-pulse');
+    }
+
+    function joinPokerRoom() {
+      if (!checkAuth()) return;
+      const roomId = document.getElementById('roomIdInput').value.trim();
+      if (!roomId) { alert('방 코드를 입력해주세요'); return; }
+      if (pokerSocket) pokerSocket.close();
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/sevenpoker/${encodeURIComponent(roomId)}?token=${encodeURIComponent(getToken())}`;
+      pokerSocket = new WebSocket(wsUrl);
+
+      pokerSocket.onopen = () => {
+        document.getElementById('joinBox').style.display = 'none';
+        document.getElementById('layout').style.display = 'flex';
+      };
+      pokerSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'state') {
+          mySeat = data.my_seat;
+          renderTable(data);
+        }
+      };
+    }
+
+    const suitInfo = { S: ['♠','black'], H: ['♥','red'], D: ['♦','red'], C: ['♣','black'] };
+    function rankLabel(rank) {
+      if (rank === 14) return 'A';
+      if (rank === 11) return 'J';
+      if (rank === 12) return 'Q';
+      if (rank === 13) return 'K';
+      return String(rank);
+    }
+    function cardHtml(card, dealt) {
+      if (!card) return `<div class="card2 back ${dealt ? 'dealt' : ''}"></div>`;
+      const [symbol, color] = suitInfo[card.suit];
+      return `<div class="card2 face ${color} ${dealt ? 'dealt' : ''}"><div>${rankLabel(card.rank)}${symbol}</div></div>`;
+    }
+
+    function combinations(arr, k) {
+      const results = [];
+      function helper(start, combo) {
+        if (combo.length === k) { results.push([...combo]); return; }
+        for (let i = start; i < arr.length; i++) {
+          combo.push(arr[i]);
+          helper(i+1, combo);
+          combo.pop();
+        }
+      }
+      helper(0, []);
+      return results;
+    }
+    const handTierNames = ['하이카드','원페어','투페어','트리플','스트레이트','플러시','풀하우스','포카드','스트레이트 플러시'];
+    function evaluate5(cards) {
+      const ranks = cards.map(c => c.rank).sort((a,b) => b-a);
+      const suits = cards.map(c => c.suit);
+      const isFlush = new Set(suits).size === 1;
+      const rankCounts = {};
+      ranks.forEach(r => rankCounts[r] = (rankCounts[r]||0)+1);
+      const counts = Object.entries(rankCounts).map(([r,c]) => [parseInt(r), c])
+        .sort((a,b) => b[1]-a[1] || b[0]-a[0]);
+      const countPattern = counts.map(c => c[1]);
+      const uniqueRanks = [...new Set(ranks)].sort((a,b)=>b-a);
+      let isStraight = false, straightHigh = null;
+      if (uniqueRanks.length === 5) {
+        if (uniqueRanks[0] - uniqueRanks[4] === 4) { isStraight = true; straightHigh = uniqueRanks[0]; }
+        else if (JSON.stringify(uniqueRanks) === JSON.stringify([14,5,4,3,2])) { isStraight = true; straightHigh = 5; }
+      }
+      if (isStraight && isFlush) return [8, straightHigh];
+      if (JSON.stringify(countPattern) === '[4,1]') return [7, counts[0][0], counts[1][0]];
+      if (JSON.stringify(countPattern) === '[3,2]') return [6, counts[0][0], counts[1][0]];
+      if (isFlush) return [5, ...ranks];
+      if (isStraight) return [4, straightHigh];
+      if (JSON.stringify(countPattern) === '[3,1,1]') return [3, counts[0][0]];
+      if (JSON.stringify(countPattern) === '[2,2,1]') return [2, counts[0][0], counts[1][0]];
+      if (JSON.stringify(countPattern) === '[2,1,1,1]') return [1, counts[0][0]];
+      return [0, ...ranks];
+    }
+    function compareScore(a, b) {
+      for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        const av = a[i] ?? -1, bv = b[i] ?? -1;
+        if (av !== bv) return av - bv;
+      }
+      return 0;
+    }
+    function pokerHandName(cards) {
+      if (!cards || cards.length === 0) return '';
+      if (cards.length < 5) {
+        const counts = {};
+        cards.forEach(c => counts[c.rank] = (counts[c.rank]||0)+1);
+        const maxCount = Math.max(...Object.values(counts));
+        if (maxCount >= 2) return maxCount === 2 ? '원페어 가능성' : '트리플 가능성';
+        return '하이카드';
+      }
+      let best = null;
+      for (const combo of combinations(cards, 5)) {
+        const score = evaluate5(combo);
+        if (!best || compareScore(score, best) > 0) best = score;
+      }
+      return handTierNames[best[0]];
+    }
+
+    function renderTable(data) {
+      const opponentSeat = mySeat === 'p1' ? 'p2' : 'p1';
+      const meInfo = data.seats.find(s => s.seat === mySeat);
+      const oppInfo = data.seats.find(s => s.seat === opponentSeat);
+
+      const myNameEl = document.getElementById('myName');
+      const oppNameEl = document.getElementById('opponentName');
+      myNameEl.textContent = meInfo ? meInfo.username : (mySeat ? '나' : '관전중');
+      oppNameEl.textContent = oppInfo ? oppInfo.username : '상대 대기중...';
+      myNameEl.classList.toggle('my-turn-active', data.phase === 'betting' && data.turn === mySeat);
+      oppNameEl.classList.toggle('my-turn-active', data.phase === 'betting' && data.turn === opponentSeat);
+
+      const myChipsEl = document.getElementById('myChips');
+      const oppChipsEl = document.getElementById('opponentChips');
+      if (meInfo) {
+        const newVal = data.chips[meInfo.username] ?? 0;
+        if (lastChips[meInfo.username] !== undefined && lastChips[meInfo.username] !== newVal) pulseValue(myChipsEl);
+        lastChips[meInfo.username] = newVal;
+        myChipsEl.textContent = `💰 ${newVal}`;
+      }
+      if (oppInfo) {
+        const newVal = data.chips[oppInfo.username] ?? 0;
+        if (lastChips[oppInfo.username] !== undefined && lastChips[oppInfo.username] !== newVal) pulseValue(oppChipsEl);
+        lastChips[oppInfo.username] = newVal;
+        oppChipsEl.textContent = `💰 ${newVal}`;
+      }
+
+      const potEl = document.getElementById('potLine');
+      if (lastPot !== null && lastPot !== data.pot) pulseValue(potEl);
+      lastPot = data.pot;
+      potEl.textContent = `판돈: ${data.pot}`;
+
+      document.getElementById('streetLine').textContent = data.street ? `${data.street}번째 카드 진행중` : '';
+      const isNewHand = JSON.stringify(data.my_hand) !== lastHandKey;
+      lastHandKey = JSON.stringify(data.my_hand);
+
+      const myCardsEl = document.getElementById('myCards');
+      const handNameEl = document.getElementById('myHandName');
+      if (data.my_hand) {
+        myCardsEl.innerHTML = data.my_hand.map(c => cardHtml(c, isNewHand)).join('');
+        handNameEl.textContent = `현재 패: ${pokerHandName(data.my_hand)}`;
+      } else {
+        myCardsEl.innerHTML = '';
+        handNameEl.textContent = '';
+      }
+
+      const oppCardsEl = document.getElementById('opponentCards');
+      if (data.phase === 'result' && data.all_hands && data.all_hands[opponentSeat]) {
+        oppCardsEl.innerHTML = data.all_hands[opponentSeat].map(c => cardHtml(c, true)).join('');
+      } else if ((data.phase === 'betting') && data.public_hands && data.public_hands[opponentSeat]) {
+        oppCardsEl.innerHTML = data.public_hands[opponentSeat].map(c => cardHtml(c, false)).join('');
+      } else {
+        oppCardsEl.innerHTML = '';
+      }
+
+      const statusEl = document.getElementById('statusText');
+      const actionsEl = document.getElementById('actionButtons');
+      const startBtn = document.getElementById('startBtn');
+      const nextBtn = document.getElementById('nextHandBtn');
+      const resultBanner = document.getElementById('resultBanner');
+      const aiBtn = document.getElementById('aiBtn');
+      startBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+      resultBanner.style.display = 'none';
+      aiBtn.style.display = 'none';
+      actionsEl.innerHTML = '';
+
+      if (data.phase === 'idle') {
+        if (data.seats.length < 2) {
+          statusEl.textContent = '상대방을 기다리는 중입니다...';
+          if (mySeat === 'p1' && !data.ai_seat) aiBtn.style.display = 'inline-block';
+        } else {
+          statusEl.textContent = '게임을 시작할 수 있어요!';
+        }
+        if (data.seats.length === 2 && mySeat) startBtn.style.display = 'inline-block';
+      } else if (data.phase === 'betting') {
+        if (data.turn === mySeat) {
+          statusEl.textContent = '당신의 차례입니다';
+          if (!data.bet_this_round) {
+            actionsEl.innerHTML = `
+              <button class="btn-check" onclick="sendAction('check')">✋ 체크</button>
+              <button class="btn-bet" onclick="sendBet(Math.max(100, Math.floor(${data.pot}/2)))">💰 하프 (${Math.max(100, Math.floor(data.pot/2))})</button>
+              <button class="btn-bet" onclick="sendBet(${data.pot})">💵 풀 (${data.pot})</button>
+              <button class="btn-fold" onclick="sendAction('fold')">🚫 다이</button>
+            `;
+          } else {
+            let html = `
+              <button class="btn-call" onclick="sendAction('call')">✅ 콜 (${data.current_bet})</button>
+              <button class="btn-fold" onclick="sendAction('fold')">🚫 다이</button>
+            `;
+            if (!data.raised) {
+              html += `<button class="btn-raise" onclick="sendAction('raise')">🔥 따당 (${data.current_bet*2})</button>`;
+            }
+            actionsEl.innerHTML = html;
+          }
+        } else if (mySeat) {
+          statusEl.textContent = '상대방의 차례를 기다리는 중...';
+        } else {
+          statusEl.textContent = '관전중입니다';
+        }
+      } else if (data.phase === 'result' && data.result) {
+        const winnerInfo = data.seats.find(s => s.seat === data.result.winner_seat);
+        const isMeWinner = data.result.winner_seat === mySeat;
+        resultBanner.style.display = 'block';
+        resultBanner.classList.remove('pop');
+        void resultBanner.offsetWidth;
+        resultBanner.classList.add('pop');
+        const confetti = isMeWinner ? '<div class="confetti-text">🎉✨🎊</div>' : '';
+        document.getElementById('winText').innerHTML = confetti + (isMeWinner
+          ? `🎉 승리! (+${data.pot}포인트)`
+          : `${winnerInfo ? winnerInfo.username : '상대'}님 승리`);
+        if (data.result.reason === 'showdown') {
+          document.getElementById('handNames').textContent =
+            `p1: ${data.result.p1_hand_name} vs p2: ${data.result.p2_hand_name}`;
+        } else {
+          document.getElementById('handNames').textContent = '상대가 다이(폴드) 했습니다';
+        }
+        statusEl.textContent = '';
+        if (mySeat) nextBtn.style.display = 'inline-block';
+      }
+    }
+
+    function startHand() {
+      if (!pokerSocket || pokerSocket.readyState !== WebSocket.OPEN) return;
+      pokerSocket.send(JSON.stringify({ type: 'start_hand' }));
+    }
+    function requestAI() {
+      if (!pokerSocket || pokerSocket.readyState !== WebSocket.OPEN) return;
+      pokerSocket.send(JSON.stringify({ type: 'add_ai' }));
+    }
+    function sendAction(move) {
+      if (!pokerSocket || pokerSocket.readyState !== WebSocket.OPEN) return;
+      pokerSocket.send(JSON.stringify({ type: 'action', move }));
+    }
+    function sendBet(amount) {
+      if (!pokerSocket || pokerSocket.readyState !== WebSocket.OPEN) return;
+      pokerSocket.send(JSON.stringify({ type: 'action', move: 'bet', amount }));
+    }
+
+    if (checkAuth()) {
+      loadRoomList();
+      setInterval(loadRoomList, 5000);
+    }
+
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) connectFloatChat();
+    }
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+      floatChatSocket.onopen = () => { document.getElementById('floatChatMessages').innerHTML = ''; };
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => { const p = document.getElementById('floatChatPanel'); if (p.classList.contains('active')) connectFloatChat(); }, 3000);
+      };
+    }
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

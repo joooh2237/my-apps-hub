@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오목 대결</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>⚫️</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px 60px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: #a0a0b8;
+    }
+    .top-bar a { color: #a0a0b8; text-decoration: none; }
+    h1 { margin: 0 0 16px; font-size: 1.6rem; }
+
+    .join-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .join-box input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.95rem;
+    }
+    .join-box button {
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .room-list-panel {
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 16px;
+    }
+    .room-list-title {
+      font-size: 0.78rem;
+      color: #9999b3;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    .room-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .room-item:hover { background: rgba(255,255,255,0.12); }
+    .room-item.full { opacity: 0.5; cursor: not-allowed; }
+    .room-item-badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(74,222,128,0.2);
+      color: #4ade80;
+    }
+    .room-item-badge.full { background: rgba(255,255,255,0.1); color: #9999b3; }
+    .room-list-empty {
+      color: #7a7a92;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 10px 0;
+    }
+    .room-list-panel {
+      width: 100%;
+      max-width: 380px;
+      margin-bottom: 16px;
+    }
+    .room-list-title {
+      font-size: 0.78rem;
+      color: #9999b3;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    .room-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .room-item:hover { background: rgba(255,255,255,0.12); }
+    .room-item.full { opacity: 0.5; cursor: not-allowed; }
+    .room-item-badge {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(74,222,128,0.2);
+      color: #4ade80;
+    }
+    .room-item-badge.full { background: rgba(255,255,255,0.1); color: #9999b3; }
+    .room-list-empty {
+      color: #7a7a92;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .status-line {
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      color: #c0c0d0;
+      text-align: center;
+    }
+    .my-color-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      margin-left: 6px;
+    }
+    .my-color-badge.black { background: #222; color: white; border: 1px solid #555; }
+    .my-color-badge.white { background: white; color: #222; }
+
+    .board-wrap {
+      background: #dcb35c;
+      border-radius: 8px;
+      padding: 14px;
+      display: none;
+    }
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(15, 22px);
+      grid-template-rows: repeat(15, 22px);
+    }
+    .board-cell {
+      width: 22px;
+      height: 22px;
+      position: relative;
+      border-right: 1px solid #8a6a34;
+      border-bottom: 1px solid #8a6a34;
+      cursor: pointer;
+    }
+    .stone {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px; height: 18px;
+      border-radius: 50%;
+    }
+    .stone.black { background: radial-gradient(circle at 35% 35%, #666, #000); }
+    .stone.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); border: 1px solid #999; }
+
+    .players-box {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: #c0c0d0;
+    }
+    .players-box span.turn-active { color: #ff8fa3; font-weight: bold; }
+
+    .winner-banner {
+      margin-top: 16px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #ff8fa3;
+      display: none;
+    }
+    .reset-btn {
+      margin-top: 12px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      cursor: pointer;
+      display: none;
+    }
+    .login-required { text-align: center; color: #9999b3; margin-top: 60px; }
+    .login-required a { color: #ff8fa3; }
+    .hidden { display: none !important; }
+
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) {
+      .float-chat-panel { width: calc(100vw - 48px); right: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/games/">← 게임으로</a>
+  </div>
+
+  <h1>⚫️⚪️ 오목 대결</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="omokApp" class="hidden" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+
+    <div class="room-list-panel">
+      <div class="room-list-title">📋 활성화된 방</div>
+      <div id="roomListItems"></div>
+    </div>
+    <div class="join-box" id="joinBox">
+      <input type="text" id="roomIdInput" placeholder="방 코드 (예: room1)">
+      <button onclick="joinOmokRoom()">입장</button>
+    </div>
+
+    <div class="status-line" id="statusLine"></div>
+    <div class="status-line" id="waitingBanner" style="display:none; color:#ff8fa3;">⏳ 상대방을 기다리는 중입니다... 방 코드를 공유해서 초대해보세요!</div>
+
+    <div class="board-wrap" id="boardWrap">
+      <div class="board-grid" id="boardGrid"></div>
+    </div>
+
+    <div class="players-box" id="playersBox"></div>
+    <div class="winner-banner" id="winnerBanner"></div>
+    <button class="reset-btn" id="resetBtn" onclick="resetOmok()">🔄 다시 시작</button>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('omokApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('omokApp').classList.remove('hidden');
+      return true;
+    }
+
+    async function loadRoomList() {
+      try {
+        const res = await fetch('/api/travel/omok/rooms', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const rooms = await res.json();
+        const listEl = document.getElementById('roomListItems');
+        if (rooms.length === 0) {
+          listEl.innerHTML = '<div class="room-list-empty">아직 열린 방이 없어요. 새로 만들어보세요!</div>';
+          return;
+        }
+        listEl.innerHTML = rooms.map(r => {
+          const isFull = r.player_count >= 2;
+          const badge = isFull ? '<span class="room-item-badge full">진행중</span>' : '<span class="room-item-badge">대기중</span>';
+          return `
+            <div class="room-item ${isFull ? 'full' : ''}" onclick="${isFull ? '' : `quickJoin('${r.room_id}')`}">
+              <span>🎮 ${r.room_id} (${r.players.join(', ')})</span>
+              ${badge}
+            </div>
+          `;
+        }).join('');
+      } catch (err) {}
+    }
+
+    function quickJoin(roomId) {
+      document.getElementById('roomIdInput').value = roomId;
+      joinOmokRoom();
+    }
+
+    let omokSocket = null;
+    let myColor = null;
+    let currentBoard = null;
+    let currentTurn = null;
+
+    function buildBoardGrid() {
+      const grid = document.getElementById('boardGrid');
+      grid.innerHTML = '';
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'board-cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.onclick = () => placeStone(r, c);
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function renderBoard(board) {
+      currentBoard = board;
+      const cells = document.querySelectorAll('.board-cell');
+      cells.forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        cell.innerHTML = '';
+        const val = board[r][c];
+        if (val) {
+          const stone = document.createElement('div');
+          stone.className = `stone ${val}`;
+          cell.appendChild(stone);
+        }
+      });
+    }
+
+    function joinOmokRoom() {
+      if (!checkAuth()) return;
+      const roomId = document.getElementById('roomIdInput').value.trim();
+      if (!roomId) {
+        alert('방 코드를 입력해주세요');
+        return;
+      }
+
+      if (omokSocket) omokSocket.close();
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/omok/${encodeURIComponent(roomId)}?token=${encodeURIComponent(getToken())}`;
+      omokSocket = new WebSocket(wsUrl);
+
+      omokSocket.onopen = () => {
+        document.getElementById('joinBox').style.display = 'none';
+        document.getElementById('boardWrap').style.display = 'block';
+        buildBoardGrid();
+      };
+
+      omokSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'assigned') {
+          myColor = data.color;
+          updateStatusLine();
+        } else if (data.type === 'state') {
+          renderBoard(data.board);
+          currentTurn = data.turn;
+          updateStatusLine();
+          renderPlayers(data.players, data.turn);
+          if (data.winner) {
+            showWinner(data.winner);
+          } else {
+            document.getElementById('winnerBanner').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'none';
+          }
+        }
+      };
+
+      omokSocket.onclose = () => {
+        document.getElementById('statusLine').textContent = '연결이 끊어졌습니다. 방 코드를 다시 입력해 재접속해주세요.';
+      };
+    }
+
+    function updateStatusLine() {
+      const line = document.getElementById('statusLine');
+      if (!myColor) {
+        line.innerHTML = `관전중입니다`;
+        return;
+      }
+      const colorLabel = myColor === 'black' ? '흑돌' : '백돌';
+      const badgeClass = myColor;
+      let turnText = '';
+      if (currentTurn) {
+        turnText = currentTurn === myColor ? ' · 당신 차례입니다!' : ' · 상대 차례';
+      }
+      line.innerHTML = `당신은 <span class="my-color-badge ${badgeClass}">${colorLabel}</span>${turnText}`;
+    }
+
+    function renderPlayers(players, turn) {
+      const box = document.getElementById('playersBox');
+      const black = players.find(p => p.color === 'black');
+      const white = players.find(p => p.color === 'white');
+      box.innerHTML = `
+        <span class="${turn === 'black' ? 'turn-active' : ''}">⚫️ ${black ? black.username : '대기중...'}</span>
+        <span class="${turn === 'white' ? 'turn-active' : ''}">⚪️ ${white ? white.username : '대기중...'}</span>
+      `;
+
+      const waitingBanner = document.getElementById('waitingBanner');
+      if (!black || !white) {
+        waitingBanner.style.display = 'block';
+      } else {
+        waitingBanner.style.display = 'none';
+      }
+    }
+
+    function showWinner(winner) {
+      const banner = document.getElementById('winnerBanner');
+      const label = winner === 'black' ? '⚫️ 흑돌' : '⚪️ 백돌';
+      const isMe = winner === myColor;
+      banner.textContent = isMe ? `🎉 ${label} 승리! 당신이 이겼습니다!` : `${label} 승리!`;
+      banner.style.display = 'block';
+      document.getElementById('resetBtn').style.display = 'inline-block';
+    }
+
+    function placeStone(row, col) {
+      if (!omokSocket || omokSocket.readyState !== WebSocket.OPEN) return;
+      if (!myColor) {
+        alert('관전자는 착수할 수 없어요');
+        return;
+      }
+      if (currentBoard && currentBoard[row][col]) return;
+      omokSocket.send(JSON.stringify({ type: 'place', row, col }));
+    }
+
+    function resetOmok() {
+      if (!omokSocket || omokSocket.readyState !== WebSocket.OPEN) return;
+      omokSocket.send(JSON.stringify({ type: 'reset' }));
+    }
+
+    if (checkAuth()) {
+      loadRoomList();
+      setInterval(loadRoomList, 5000);
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) {
+        connectFloatChat();
+      }
+    }
+
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+
+      floatChatSocket.onopen = () => {
+        document.getElementById('floatChatMessages').innerHTML = '';
+      };
+
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => {
+          const panel = document.getElementById('floatChatPanel');
+          if (panel.classList.contains('active')) connectFloatChat();
+        }, 3000);
+      };
+    }
+
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

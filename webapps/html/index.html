@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>내 방명록</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1a1a2e;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
+    }
+    h1 { margin-bottom: 20px; }
+    .auth-box, form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
+    }
+    input, textarea {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      background: #e94560;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover { background: #d63652; }
+    .auth-status {
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    .link-btn {
+      background: none;
+      border: none;
+      color: #e94560;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0;
+    }
+    .entries {
+      width: 100%;
+      max-width: 400px;
+    }
+    .entry {
+      background: #16213e;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .entry-content { flex: 1; }
+    .entry-content b { color: #e94560; }
+    .entry-time {
+      font-size: 0.75rem;
+      color: #888;
+      display: block;
+      margin-top: 4px;
+    }
+    .entry-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .small-btn {
+      background: transparent;
+      color: #888;
+      border: 1px solid #444;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .small-btn:hover {
+      background: #e94560;
+      color: white;
+      border-color: #e94560;
+    }
+    .edit-textarea {
+      width: 100%;
+      margin-top: 6px;
+      box-sizing: border-box;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>📖 방명록</h1>
+
+  <div class="auth-status" id="authStatus"></div>
+
+  <!-- 로그인 안 된 상태: 로그인/회원가입 폼 -->
+  <div class="auth-box" id="authBox">
+    <input type="text" id="authUsername" placeholder="아이디">
+    <input type="password" id="authPassword" placeholder="비밀번호">
+    <button onclick="doLogin()">로그인</button>
+    <button class="link-btn" onclick="doRegister()">계정이 없으신가요? 회원가입</button>
+  </div>
+
+  <!-- 로그인 된 상태: 글쓰기 폼 -->
+  <form id="guestForm" class="hidden">
+    <input type="text" id="name" placeholder="이름" required>
+    <textarea id="message" placeholder="메시지를 남겨주세요" required></textarea>
+    <button type="submit">등록하기</button>
+    <button type="button" class="link-btn" onclick="logout()">로그아웃</button>
+  </form>
+
+  <div class="entries" id="entries"></div>
+
+  <script>
+    const authBox = document.getElementById('authBox');
+    const guestForm = document.getElementById('guestForm');
+    const authStatus = document.getElementById('authStatus');
+    const entriesDiv = document.getElementById('entries');
+
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    function updateAuthUI() {
+      const token = getToken();
+      if (token) {
+        authBox.classList.add('hidden');
+        guestForm.classList.remove('hidden');
+        authStatus.textContent = '로그인됨';
+      } else {
+        authBox.classList.remove('hidden');
+        guestForm.classList.add('hidden');
+        authStatus.textContent = '로그인이 필요합니다';
+      }
+    }
+
+    async function doRegister() {
+      const username = document.getElementById('authUsername').value;
+      const password = document.getElementById('authPassword').value;
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('회원가입 완료! 이제 로그인해주세요.');
+      } else {
+        alert(data.detail || '회원가입 실패');
+      }
+    }
+
+    async function doLogin() {
+      const username = document.getElementById('authUsername').value;
+      const password = document.getElementById('authPassword').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.access_token);
+        updateAuthUI();
+      } else {
+        alert(data.detail || '로그인 실패');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      updateAuthUI();
+    }
+
+    async function loadEntries() {
+      const res = await fetch('/entries');
+      const data = await res.json();
+      entriesDiv.innerHTML = data.map(e => `
+        <div class="entry" id="entry-${e.id}">
+          <div class="entry-content">
+            <div class="view-mode">
+              <b>${e.name}</b>: <span class="msg-text">${e.message}</span>
+              <span class="entry-time">${e.created_at}</span>
+            </div>
+          </div>
+          <div class="entry-buttons">
+            <button class="small-btn" onclick="startEdit(${e.id})">수정</button>
+            <button class="small-btn" onclick="deleteEntry(${e.id})">삭제</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function startEdit(id) {
+      const entryDiv = document.getElementById(`entry-${id}`);
+      const msgSpan = entryDiv.querySelector('.msg-text');
+      const currentMsg = msgSpan.textContent;
+
+      entryDiv.querySelector('.entry-content').innerHTML = `
+        <textarea class="edit-textarea" id="edit-msg-${id}">${currentMsg}</textarea>
+        <button class="small-btn" onclick="submitEdit(${id})">저장</button>
+        <button class="small-btn" onclick="loadEntries()">취소</button>
+      `;
+    }
+
+    async function submitEdit(id) {
+      const message = document.getElementById(`edit-msg-${id}`).value;
+      const res = await fetch(`/entries/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ message })
+      });
+      if (res.status === 401) {
+        alert('로그인이 필요합니다');
+        logout();
+        return;
+      }
+      loadEntries();
+    }
+
+    async function deleteEntry(id) {
+      if (!confirm('이 글을 삭제할까요?')) return;
+      const res = await fetch(`/entries/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (res.status === 401) {
+        alert('로그인이 필요합니다');
+        logout();
+        return;
+      }
+      loadEntries();
+    }
+
+    guestForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const message = document.getElementById('message').value;
+
+      const res = await fetch('/entries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ name, message })
+      });
+
+      if (res.status === 401) {
+        alert('로그인이 필요합니다');
+        logout();
+        return;
+      }
+
+      guestForm.reset();
+      loadEntries();
+    });
+
+    updateAuthUI();
+    loadEntries();
+  </script>
+</body>
+</html>

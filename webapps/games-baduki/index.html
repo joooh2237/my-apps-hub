@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>바둑이</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🃏</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a2e3b 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 420px; display: flex; justify-content: flex-end; margin-bottom: 12px; font-size: 0.85rem; }
+    .top-bar a { color: #a0c4d6; text-decoration: none; }
+    h1 { margin: 0 0 16px; font-size: 1.5rem; }
+
+    .join-box { display: flex; gap: 8px; margin-bottom: 20px; width: 100%; max-width: 380px; }
+    .join-box input { flex: 1; padding: 12px 14px; border-radius: 10px; border: none; font-size: 0.95rem; }
+    .join-box button { padding: 12px 18px; border-radius: 10px; border: none; background: #e94560; color: white; font-weight: bold; cursor: pointer; }
+    .room-list-panel { width: 100%; max-width: 380px; margin-bottom: 16px; }
+    .room-list-title { font-size: 0.78rem; color: #a0c4d6; margin-bottom: 8px; letter-spacing: 1px; }
+    .room-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; margin-bottom: 6px; cursor: pointer; font-size: 0.85rem; }
+    .room-item:hover { background: rgba(255,255,255,0.12); }
+    .room-item.full { opacity: 0.5; cursor: not-allowed; }
+    .room-item-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; background: rgba(74,222,128,0.2); color: #4ade80; }
+    .room-item-badge.full { background: rgba(255,255,255,0.1); color: #a0c4d6; }
+    .room-list-empty { color: #7a97a8; font-size: 0.8rem; text-align: center; padding: 10px 0; }
+
+    .layout { width: 100%; max-width: 420px; display: none; flex-direction: column; gap: 12px; }
+    .table { width: 100%; background: rgba(0,0,0,0.25); border-radius: 18px; padding: 20px; }
+    .opponent-row, .my-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
+    .chip-count { color: #ffd76a; font-weight: bold; }
+    .pot-line { text-align: center; font-size: 1rem; margin: 12px 0; color: #ffd76a; font-weight: bold; }
+
+    .card-row { display: flex; gap: 8px; justify-content: center; margin: 14px 0; flex-wrap: wrap; min-height: 68px; }
+    .card2 {
+      width: 48px; height: 68px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 1rem; cursor: default; position: relative;
+      border: 2px solid transparent;
+      opacity: 1; transform: none;
+    }
+    .card2.dealt { animation: dealIn2 0.4s ease forwards; }
+    .card2:nth-child(1).dealt { animation-delay: 0s; }
+    .card2:nth-child(2).dealt { animation-delay: 0.1s; }
+    .card2:nth-child(3).dealt { animation-delay: 0.2s; }
+    .card2:nth-child(4).dealt { animation-delay: 0.3s; }
+    @keyframes dealIn2 { to { opacity: 1; transform: translateY(0) rotate(0deg); } }
+    .card2.face { background: #fdfaf0; }
+    .card2.face.red { color: #d63652; }
+    .card2.face.black { color: #222; }
+    .card2.back { background: repeating-linear-gradient(45deg, #1f4a7a, #1f4a7a 4px, #235a92 4px, #235a92 8px); border: 2px solid #0f2f4a; }
+    .card2.selectable { cursor: pointer; }
+    .card2.selected { border-color: #ffd76a; transform: translateY(-6px) !important; box-shadow: 0 4px 10px rgba(255,215,106,0.4); }
+
+    .my-hand-name { text-align: center; font-size: 0.95rem; color: #ffd76a; font-weight: bold; margin-bottom: 4px; min-height: 1.3em; }
+    .status-text { text-align: center; font-size: 0.9rem; color: #a0c4d6; margin: 10px 0; min-height: 1.2em; }
+
+    .action-buttons { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+    .action-buttons button { padding: 12px 20px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+    .btn-bet { background: #e94560; color: white; }
+    .btn-fold { background: rgba(255,255,255,0.15); color: white; }
+    .btn-call { background: #4ade80; color: #062; }
+    .btn-draw { background: rgba(255,255,255,0.15); color: #a0c4d6; transition: all 0.2s; }
+    .btn-draw.active { background: #4a9fe9; color: white; box-shadow: 0 0 12px rgba(74,159,233,0.6); }
+
+    .result-banner { text-align: center; margin-top: 14px; padding: 14px; background: rgba(255,255,255,0.08); border-radius: 12px; display: none; }
+    .result-banner .win-text { font-size: 1.1rem; font-weight: bold; color: #ffd76a; margin-bottom: 6px; }
+    .next-hand-btn, .start-btn { margin-top: 12px; padding: 12px 22px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; display: none; }
+    .next-hand-btn { background: #e94560; color: white; }
+    .start-btn { background: #4ade80; color: #062; }
+
+    .rank-panel { width: 100%; background: rgba(255,255,255,0.06); border-radius: 14px; padding: 14px 16px; }
+    .rank-panel-title { font-size: 0.78rem; color: #9fc7d9; letter-spacing: 1px; margin-bottom: 8px; }
+    .rank-list { font-size: 0.78rem; line-height: 1.9; color: #cfe6f0; }
+    .rank-list .tier-label { color: #ffd76a; font-weight: bold; margin-right: 4px; }
+
+    /* 버튼 눌리는 느낌 */
+    .action-buttons button, .start-btn, .next-hand-btn, .join-box button {
+      transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+    .action-buttons button:hover, .start-btn:hover, .next-hand-btn:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 0 14px rgba(255,255,255,0.25);
+    }
+    .action-buttons button:active, .start-btn:active, .next-hand-btn:active, .join-box button:active {
+      transform: scale(0.93);
+      filter: brightness(0.9);
+    }
+
+    @keyframes turnGlow {
+      0%, 100% { box-shadow: 0 0 0px rgba(255,215,106,0.0); }
+      50% { box-shadow: 0 0 14px rgba(255,215,106,0.7); }
+    }
+    .my-turn-active {
+      animation: turnGlow 1.4s ease-in-out infinite;
+      border-radius: 8px;
+      padding: 2px 8px;
+      background: rgba(255,215,106,0.1);
+    }
+
+    @keyframes valuePulse {
+      0% { transform: scale(1); color: #ffd76a; }
+      40% { transform: scale(1.35); color: #4ade80; }
+      100% { transform: scale(1); color: #ffd76a; }
+    }
+    .value-pulse { display: inline-block; animation: valuePulse 0.6s ease; }
+
+    @keyframes bannerPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .result-banner.pop { animation: bannerPop 0.5s cubic-bezier(.34,1.56,.64,1); }
+    .confetti-text {
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+      animation: confettiFloat 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes confettiFloat {
+      from { transform: translateY(0); }
+      to { transform: translateY(-4px); }
+    }
+
+    @keyframes cardFlip {
+      0% { transform: rotateY(90deg); }
+      100% { transform: rotateY(0deg); }
+    }
+    .card2.flip { animation: cardFlip 0.35s ease; }
+
+    .login-required { text-align: center; color: #a0c4d6; margin-top: 60px; }
+    .login-required a { color: #ffd76a; }
+    .hidden { display: none !important; }
+
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) { .float-chat-panel { width: calc(100vw - 48px); right: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="top-bar"><a href="/games/">← 게임으로</a></div>
+  <h1>🃏 바둑이 (가상포인트)</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+    </div>
+  <div id="badukiApp" class="hidden" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+    <div class="room-list-panel">
+      <div class="room-list-title">📋 활성화된 방</div>
+      <div id="roomListItems"></div>
+    </div>
+    <div class="join-box" id="joinBox">
+      <input type="text" id="roomIdInput" placeholder="방 코드 (예: room1)">
+      <button onclick="joinBadukiRoom()">입장</button>
+    </div>
+
+    <div class="layout" id="layout">
+      <div class="table">
+        <div class="opponent-row">
+          <span id="opponentName">상대 대기중...</span>
+          <span class="chip-count" id="opponentChips">-</span>
+        </div>
+        <div class="card-row" id="opponentCards"></div>
+
+        <div class="pot-line" id="potLine">판돈: 0</div>
+
+        <div class="my-hand-name" id="myHandName"></div>
+        <div class="card-row" id="myCards"></div>
+        <div class="my-row">
+          <span id="myName">나</span>
+          <span class="chip-count" id="myChips">-</span>
+        </div>
+
+        <div class="status-text" id="statusText"></div>
+        <div class="action-buttons" id="actionButtons"></div>
+
+        <div class="result-banner" id="resultBanner">
+          <div class="win-text" id="winText"></div>
+          <div id="handNames" style="font-size:0.85rem; color:#a0c4d6;"></div>
+        </div>
+
+        <div style="text-align:center;">
+          <button class="start-btn" id="aiBtn" onclick="requestAI()" style="display:none; background:#8a5cf7; color:white;">🤖 AI와 대결하기</button>
+          <button class="start-btn" id="startBtn" onclick="startHand()">🎲 게임 시작</button>
+          <button class="next-hand-btn" id="nextHandBtn" onclick="startHand()">▶️ 다음 판</button>
+        </div>
+      </div>
+
+      <div class="rank-panel">
+        <div class="rank-panel-title">📖 바둑이 규칙 요약</div>
+        <div class="rank-list">
+          <span class="tier-label">•</span>무늬·숫자가 모두 겹치지 않는 카드만 "유효 카드"로 인정<br>
+          <span class="tier-label">•</span>4장 바둑이 &gt; 3장 &gt; 2장 &gt; 1장 (개수가 많을수록 강함)<br>
+          <span class="tier-label">•</span>같은 개수면 숫자 합이 낮을수록 승리 (A가 가장 낮음)<br>
+          <span class="tier-label">•</span>아침·점심·저녁 3번 교체 기회, 매 라운드 베팅
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('badukiApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('badukiApp').classList.remove('hidden');
+      return true;
+    }
+
+    async function loadRoomList() {
+      try {
+        const res = await fetch('/api/travel/baduki/rooms', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const rooms = await res.json();
+        const listEl = document.getElementById('roomListItems');
+        if (rooms.length === 0) {
+          listEl.innerHTML = '<div class="room-list-empty">아직 열린 방이 없어요. 새로 만들어보세요!</div>';
+          return;
+        }
+        listEl.innerHTML = rooms.map(r => {
+          const isFull = r.player_count >= 2;
+          const badge = isFull ? '<span class="room-item-badge full">진행중</span>' : '<span class="room-item-badge">대기중</span>';
+          return `
+            <div class="room-item ${isFull ? 'full' : ''}" onclick="${isFull ? '' : `quickJoin('${r.room_id}')`}">
+              <span>🃏 ${r.room_id} (${r.players.join(', ')})</span>
+              ${badge}
+            </div>
+          `;
+        }).join('');
+      } catch (err) {}
+    }
+
+    function quickJoin(roomId) {
+      document.getElementById('roomIdInput').value = roomId;
+      joinBadukiRoom();
+    }
+
+    let badukiSocket = null;
+    let mySeat = null;
+    let lastChips = {};
+    let lastPot = null;
+
+    function pulseValue(el) {
+      el.classList.remove('value-pulse');
+      void el.offsetWidth;
+      el.classList.add('value-pulse');
+    }
+    let selectedDiscard = new Set();
+    let lastHandKey = '';
+
+    function joinBadukiRoom() {
+      if (!checkAuth()) return;
+      const roomId = document.getElementById('roomIdInput').value.trim();
+      if (!roomId) { alert('방 코드를 입력해주세요'); return; }
+      if (badukiSocket) badukiSocket.close();
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/baduki/${encodeURIComponent(roomId)}?token=${encodeURIComponent(getToken())}`;
+      badukiSocket = new WebSocket(wsUrl);
+
+      badukiSocket.onopen = () => {
+        document.getElementById('joinBox').style.display = 'none';
+        document.getElementById('layout').style.display = 'flex';
+      };
+      badukiSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'state') {
+          mySeat = data.my_seat;
+          renderTable(data);
+        }
+      };
+    }
+
+    const suitInfo = { S: ['♠','black'], H: ['♥','red'], D: ['♦','red'], C: ['♣','black'] };
+    function rankLabel(rank) {
+      if (rank === 1) return 'A';
+      if (rank === 11) return 'J';
+      if (rank === 12) return 'Q';
+      if (rank === 13) return 'K';
+      return String(rank);
+    }
+    function cardHtml(card, faceUp, selectable, idx, dealt) {
+      if (!faceUp) return `<div class="card2 back ${dealt ? 'dealt' : ''}"></div>`;
+      const [symbol, color] = suitInfo[card.suit];
+      const selCls = selectable ? 'selectable' : '';
+      const selectedCls = selectedDiscard.has(idx) ? 'selected' : '';
+      const onclick = selectable ? `onclick="toggleDiscard(${idx})"` : '';
+      return `<div class="card2 face ${color} ${selCls} ${selectedCls} ${dealt ? 'dealt' : ''}" ${onclick}>
+        <div>${rankLabel(card.rank)}${symbol}</div>
+      </div>`;
+    }
+
+    function toggleDiscard(idx) {
+      if (selectedDiscard.has(idx)) selectedDiscard.delete(idx);
+      else selectedDiscard.add(idx);
+      renderMyCardsOnly();
+      updateDrawButton();
+    }
+
+    function updateDrawButton() {
+      const btn = document.getElementById('drawSubmitBtn');
+      if (!btn) return;
+      const n = selectedDiscard.size;
+      btn.textContent = n === 0 ? '🔄 그대로 진행하기' : `🔄 선택한 카드 ${n}장 교체하기`;
+      btn.classList.toggle('active', n > 0);
+    }
+
+    let lastMyHand = null;
+    let lastPhase = null;
+    function renderMyCardsOnly() {
+      const myCardsEl = document.getElementById('myCards');
+      if (!lastMyHand) return;
+      const selectable = lastPhase === 'draw';
+      myCardsEl.innerHTML = lastMyHand.map((c, i) => cardHtml(c, true, selectable, i, false)).join('');
+    }
+
+    // 클라이언트에서 최고 조합 계산 (서버 baduki_best_subset과 동일 로직)
+    function combinations(arr, k) {
+      const results = [];
+      function helper(start, combo) {
+        if (combo.length === k) { results.push([...combo]); return; }
+        for (let i = start; i < arr.length; i++) {
+          combo.push(arr[i]);
+          helper(i+1, combo);
+          combo.pop();
+        }
+      }
+      helper(0, []);
+      return results;
+    }
+    function badukiHandName(cards) {
+      for (const size of [4,3,2,1]) {
+        const idxCombos = combinations([0,1,2,3], size);
+        let best = null;
+        for (const combo of idxCombos) {
+          const cs = combo.map(i => cards[i]);
+          const suits = new Set(cs.map(c => c.suit));
+          const ranks = new Set(cs.map(c => c.rank));
+          if (suits.size === size && ranks.size === size) {
+            const sortedVals = cs.map(c => c.rank).sort((a,b)=>b-a);
+            if (!best || sortedVals.join(',') < best.join(',')) best = sortedVals;
+          }
+        }
+        if (best) {
+          const labels = best.map(v => rankLabel(v)).join(',');
+          return `${size}장 바둑이 (${labels})`;
+        }
+      }
+      return '';
+    }
+
+    function renderTable(data) {
+      const opponentSeat = mySeat === 'p1' ? 'p2' : 'p1';
+      const meInfo = data.seats.find(s => s.seat === mySeat);
+      const oppInfo = data.seats.find(s => s.seat === opponentSeat);
+
+      const myNameEl = document.getElementById('myName');
+      const oppNameEl = document.getElementById('opponentName');
+      myNameEl.textContent = meInfo ? meInfo.username : (mySeat ? '나' : '관전중');
+      oppNameEl.textContent = oppInfo ? oppInfo.username : '상대 대기중...';
+      myNameEl.classList.toggle('my-turn-active', data.phase === 'betting' && data.turn === mySeat);
+      oppNameEl.classList.toggle('my-turn-active', data.phase === 'betting' && data.turn === opponentSeat);
+
+      const myChipsEl = document.getElementById('myChips');
+      const oppChipsEl = document.getElementById('opponentChips');
+      if (meInfo) {
+        const newVal = data.chips[meInfo.username] ?? 0;
+        if (lastChips[meInfo.username] !== undefined && lastChips[meInfo.username] !== newVal) pulseValue(myChipsEl);
+        lastChips[meInfo.username] = newVal;
+        myChipsEl.textContent = `💰 ${newVal}`;
+      }
+      if (oppInfo) {
+        const newVal = data.chips[oppInfo.username] ?? 0;
+        if (lastChips[oppInfo.username] !== undefined && lastChips[oppInfo.username] !== newVal) pulseValue(oppChipsEl);
+        lastChips[oppInfo.username] = newVal;
+        oppChipsEl.textContent = `💰 ${newVal}`;
+      }
+
+      const potEl = document.getElementById('potLine');
+      if (lastPot !== null && lastPot !== data.pot) pulseValue(potEl);
+      lastPot = data.pot;
+      potEl.textContent = `판돈: ${data.pot}`;
+
+      const isNewHand = JSON.stringify(data.my_hand) !== lastHandKey;
+      lastHandKey = JSON.stringify(data.my_hand);
+      lastMyHand = data.my_hand;
+      lastPhase = data.phase;
+      if (data.phase !== 'draw') selectedDiscard = new Set();
+
+      const myCardsEl = document.getElementById('myCards');
+      const handNameEl = document.getElementById('myHandName');
+      if (data.my_hand) {
+        const selectable = data.phase === 'draw';
+        myCardsEl.innerHTML = data.my_hand.map((c, i) => cardHtml(c, true, selectable, i, isNewHand)).join('');
+        handNameEl.textContent = `현재 패: ${badukiHandName(data.my_hand)}`;
+      } else {
+        myCardsEl.innerHTML = '';
+        handNameEl.textContent = '';
+      }
+
+      const oppCardsEl = document.getElementById('opponentCards');
+      if (data.phase === 'result' && data.all_hands && data.all_hands[opponentSeat]) {
+        oppCardsEl.innerHTML = data.all_hands[opponentSeat].map(c => cardHtml(c, true, false, -1, true)).join('');
+      } else if (data.phase === 'draw' || data.phase === 'betting') {
+        oppCardsEl.innerHTML = [0,1,2,3].map(() => cardHtml(null, false, false, -1, true)).join('');
+      } else {
+        oppCardsEl.innerHTML = '';
+      }
+
+      const statusEl = document.getElementById('statusText');
+      const actionsEl = document.getElementById('actionButtons');
+      const startBtn = document.getElementById('startBtn');
+      const nextBtn = document.getElementById('nextHandBtn');
+      const resultBanner = document.getElementById('resultBanner');
+      const aiBtn = document.getElementById('aiBtn');
+      startBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+      resultBanner.style.display = 'none';
+      aiBtn.style.display = 'none';
+      actionsEl.innerHTML = '';
+
+      if (data.phase === 'idle') {
+        if (data.seats.length < 2) {
+          statusEl.textContent = '상대방을 기다리는 중입니다...';
+          if (mySeat === 'p1' && !data.ai_seat) aiBtn.style.display = 'inline-block';
+        } else {
+          statusEl.textContent = '게임을 시작할 수 있어요!';
+        }
+        if (data.seats.length === 2 && mySeat) startBtn.style.display = 'inline-block';
+      } else if (data.phase === 'draw') {
+        const myDone = data.draw_done ? data.draw_done[mySeat] : false;
+        if (!mySeat) {
+          statusEl.textContent = '관전중입니다';
+        } else if (myDone) {
+          statusEl.textContent = '상대방이 카드를 고르는 중입니다...';
+        } else {
+          const roundNames = { 1: '🌅 아침', 2: '☀️ 점심', 3: '🌙 저녁' };
+          statusEl.textContent = `${roundNames[data.draw_round] || ''} - 바꿀 카드를 클릭해서 선택하세요 (0~4장)`;
+          actionsEl.innerHTML = `<button class="btn-draw" id="drawSubmitBtn" onclick="submitDraw()">🔄 그대로 진행하기</button>`;
+          updateDrawButton();
+        }
+      } else if (data.phase === 'betting') {
+        if (data.turn === mySeat) {
+          statusEl.textContent = '당신의 차례입니다';
+          if (!data.bet_this_round) {
+            actionsEl.innerHTML = `
+              <button class="btn-bet" onclick="sendAction('bet')">💵 베팅 (200)</button>
+              <button class="btn-fold" onclick="sendAction('fold')">🚫 다이</button>
+            `;
+          } else {
+            actionsEl.innerHTML = `
+              <button class="btn-call" onclick="sendAction('call')">✅ 콜</button>
+              <button class="btn-fold" onclick="sendAction('fold')">🚫 다이</button>
+            `;
+          }
+        } else if (mySeat) {
+          statusEl.textContent = '상대방의 차례를 기다리는 중...';
+        } else {
+          statusEl.textContent = '관전중입니다';
+        }
+      } else if (data.phase === 'result' && data.result) {
+        const winnerInfo = data.seats.find(s => s.seat === data.result.winner_seat);
+        const isMeWinner = data.result.winner_seat === mySeat;
+        resultBanner.style.display = 'block';
+        resultBanner.classList.remove('pop');
+        void resultBanner.offsetWidth;
+        resultBanner.classList.add('pop');
+        const confetti = isMeWinner ? '<div class="confetti-text">🎉✨🎊</div>' : '';
+        document.getElementById('winText').innerHTML = confetti + (isMeWinner
+          ? `🎉 승리! (+${data.pot}포인트)`
+          : `${winnerInfo ? winnerInfo.username : '상대'}님 승리`);
+        if (data.result.reason === 'showdown') {
+          document.getElementById('handNames').textContent =
+            `p1: ${data.result.p1_size}장 바둑이 vs p2: ${data.result.p2_size}장 바둑이`;
+        } else {
+          document.getElementById('handNames').textContent = '상대가 다이(폴드) 했습니다';
+        }
+        statusEl.textContent = '';
+        if (mySeat) nextBtn.style.display = 'inline-block';
+      }
+    }
+
+    function startHand() {
+      if (!badukiSocket || badukiSocket.readyState !== WebSocket.OPEN) return;
+      badukiSocket.send(JSON.stringify({ type: 'start_hand' }));
+    }
+    function requestAI() {
+      if (!badukiSocket || badukiSocket.readyState !== WebSocket.OPEN) return;
+      badukiSocket.send(JSON.stringify({ type: 'add_ai' }));
+    }
+    function submitDraw() {
+      if (!badukiSocket || badukiSocket.readyState !== WebSocket.OPEN) return;
+      badukiSocket.send(JSON.stringify({ type: 'draw', discard: Array.from(selectedDiscard) }));
+      selectedDiscard = new Set();
+    }
+    function sendAction(move) {
+      if (!badukiSocket || badukiSocket.readyState !== WebSocket.OPEN) return;
+      badukiSocket.send(JSON.stringify({ type: 'action', move }));
+    }
+
+    if (checkAuth()) {
+      loadRoomList();
+      setInterval(loadRoomList, 5000);
+    }
+
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) connectFloatChat();
+    }
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+      floatChatSocket.onopen = () => { document.getElementById('floatChatMessages').innerHTML = ''; };
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => { const p = document.getElementById('floatChatPanel'); if (p.classList.contains('active')) connectFloatChat(); }, 3000);
+      };
+    }
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

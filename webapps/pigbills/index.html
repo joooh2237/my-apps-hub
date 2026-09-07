@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>돼지 청구서</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1a1420 0%, #0d0a10 60%);
+      color: #f0e6d2;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 60px;
+    }
+    .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .top-bar a { color: #a08a6a; text-decoration: none; font-size: 0.85rem; }
+    h1 { font-size: 1.3rem; margin: 0 0 16px; color: #f6c453; letter-spacing: 0.5px; }
+
+    .hud {
+      width: 100%; max-width: 480px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin-bottom: 14px;
+    }
+    .hud-box {
+      background: rgba(40,30,20,0.6); border: 1px solid rgba(246,196,83,0.2); border-radius: 10px;
+      padding: 10px; text-align: center;
+    }
+    .hud-label { font-size: 0.68rem; color: #a08a6a; margin-bottom: 2px; }
+    .hud-value { font-size: 1.1rem; font-weight: 800; color: #f6c453; }
+
+    .bill-bar {
+      width: 100%; max-width: 480px; background: rgba(40,20,20,0.6); border: 1px solid rgba(220,80,80,0.3);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .bill-bar .label { font-size: 0.78rem; color: #d97a7a; }
+    .bill-bar .value { font-size: 1.05rem; font-weight: 800; color: #ff8f8f; }
+
+    .game-arena {
+      width: 100%; max-width: 480px; height: 340px; background: radial-gradient(circle at 50% 100%, #2a1f14 0%, #17110b 80%);
+      border: 2px solid rgba(246,196,83,0.25); border-radius: 18px; position: relative; overflow: hidden;
+      touch-action: manipulation;
+    }
+    .pig {
+      position: absolute; font-size: 2.6rem; cursor: pointer; user-select: none;
+      transition: transform 0.08s; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+      animation: pigIn 0.2s ease-out;
+    }
+    .pig:active { transform: scale(0.85); }
+    @keyframes pigIn { from { transform: scale(0); } to { transform: scale(1); } }
+    .pop-text {
+      position: absolute; font-weight: 800; color: #f6c453; font-size: 1rem; pointer-events: none;
+      animation: popUp 0.6s ease-out forwards;
+    }
+    @keyframes popUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-40px); } }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px) rotate(-1deg); }
+      40% { transform: translateX(6px) rotate(1deg); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .game-arena.shaking { animation: shake 0.25s ease-in-out; }
+
+    .pig-burst {
+      position: absolute; font-size: 2.6rem; pointer-events: none;
+      animation: burstOut 0.35s ease-out forwards;
+    }
+    @keyframes burstOut {
+      0% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+      100% { transform: scale(1.6) rotate(25deg); opacity: 0; filter: brightness(1.8) blur(1px); }
+    }
+    .burst-particle {
+      position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #f6c453;
+      pointer-events: none; animation: particleFly 0.5s ease-out forwards;
+    }
+    @keyframes particleFly {
+      0% { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+    }
+
+    .game-arena.bill-warning {
+      animation: warningPulse 0.9s ease-in-out infinite;
+    }
+    @keyframes warningPulse {
+      0%, 100% { box-shadow: inset 0 0 40px rgba(255,107,107,0.15); border-color: rgba(246,196,83,0.25); }
+      50% { box-shadow: inset 0 0 70px rgba(255,80,80,0.45); border-color: rgba(255,107,107,0.6); }
+    }
+
+    .coin-flip-btn {
+      width: 100%; max-width: 480px; margin-top: 14px; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #f6c453, #d99a2b); color: #1a1420; font-weight: 800; font-size: 0.9rem;
+      cursor: pointer; display: none;
+    }
+    .coin-flip-btn.show { display: block; }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(10,7,10,0.92); display: none; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .overlay.active { display: flex; }
+    .overlay-box {
+      background: #1e1720; border: 1px solid rgba(246,196,83,0.3); border-radius: 18px; padding: 28px 24px;
+      max-width: 380px; width: 100%; text-align: center;
+    }
+    .overlay-box h2 { color: #f6c453; margin: 0 0 10px; font-size: 1.3rem; }
+    .overlay-box p { color: #c9b896; font-size: 0.88rem; line-height: 1.5; margin: 6px 0; }
+    .overlay-btn {
+      margin-top: 16px; padding: 12px 20px; border-radius: 10px; border: none; background: #f6c453; color: #1a1420;
+      font-weight: 800; cursor: pointer; font-size: 0.9rem; width: 100%;
+    }
+
+    .shop-section { margin-top: 18px; text-align: left; }
+    .skill-quadrants {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px;
+    }
+    .quadrant-box {
+      background: rgba(30,22,16,0.55); border-radius: 12px; padding: 10px; border: 1px solid rgba(246,196,83,0.12);
+    }
+    .quadrant-title { font-size: 0.78rem; font-weight: 800; margin-bottom: 8px; text-align: center; }
+    .quadrant-box.crit .quadrant-title { color: #ff8f8f; }
+    .quadrant-box.gold .quadrant-title { color: #f6c453; }
+    .quadrant-box.pigs .quadrant-title { color: #7fd858; }
+    .quadrant-box.skill .quadrant-title { color: #9bb8ff; }
+    .skill-node {
+      background: rgba(0,0,0,0.25); border-radius: 8px; padding: 7px 9px; margin-bottom: 6px;
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    }
+    .skill-node.locked { opacity: 0.35; }
+    .skill-node-name { font-size: 0.68rem; color: #e8dcc8; line-height: 1.2; }
+    .skill-node-lv { font-size: 0.6rem; color: #a08a6a; }
+    .skill-node-btn {
+      flex-shrink: 0; padding: 4px 8px; border-radius: 6px; border: none; font-size: 0.62rem; font-weight: 700;
+      background: #f6c453; color: #1a1420; cursor: pointer;
+    }
+    .skill-node-btn:disabled { background: #4a4038; color: #8a7a68; cursor: not-allowed; }
+    .skill-node-chain { border-left: 2px dashed rgba(246,196,83,0.3); margin-left: 8px; padding-left: 8px; }
+
+    .shop-item {
+      background: rgba(40,30,20,0.5); border: 1px solid rgba(246,196,83,0.15); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .shop-item-name { font-size: 0.85rem; color: #f0e6d2; }
+    .shop-item-lv { font-size: 0.7rem; color: #a08a6a; }
+    .shop-buy-btn {
+      padding: 7px 12px; border-radius: 8px; border: none; background: #f6c453; color: #1a1420;
+      font-size: 0.75rem; font-weight: 700; cursor: pointer;
+    }
+    .shop-buy-btn:disabled { background: #4a4038; color: #8a7a68; cursor: not-allowed; }
+
+    .start-btn {
+      margin-top: 20px; padding: 14px 30px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #f6c453, #d99a2b); color: #1a1420; font-weight: 800; font-size: 1rem;
+      cursor: pointer;
+    }
+    .login-required { text-align: center; margin-top: 60px; color: #a08a6a; }
+    .login-required a { color: #f6c453; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/games/">← 게임목록</a>
+    <a href="/hub/">허브로</a>
+  </div>
+  <h1>🐷 돼지 청구서</h1>
+
+  <div id="loginRequired" class="login-required" style="display:none;">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="mainWrap" style="display:none; width:100%; max-width:480px; display:flex; flex-direction:column; align-items:center;">
+
+    <div id="lobbyView">
+      <div class="hud">
+        <div class="hud-box"><div class="hud-label">보유 포인트</div><div class="hud-value" id="lobbyPoints">0</div></div>
+        <div class="hud-box"><div class="hud-label">최고 생존</div><div class="hud-value" id="lobbyMaxDays">0일</div></div>
+        <div class="hud-box"><div class="hud-label">강화 단계</div><div class="hud-value" id="lobbyUpgradeCount">0</div></div>
+      </div>
+
+      <div class="skill-quadrants">
+        <div class="quadrant-box crit">
+          <div class="quadrant-title">🎯 치명타</div>
+          <div id="quadrant_crit"></div>
+        </div>
+        <div class="quadrant-box pigs">
+          <div class="quadrant-title">🐷 돼지수</div>
+          <div id="quadrant_pigs"></div>
+        </div>
+        <div class="quadrant-box gold">
+          <div class="quadrant-title">💰 재화</div>
+          <div id="quadrant_gold"></div>
+        </div>
+        <div class="quadrant-box skill">
+          <div class="quadrant-title">⚡ 특수스킬</div>
+          <div id="quadrant_skill"></div>
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <button class="start-btn" onclick="startGame()">게임 시작</button>
+      </div>
+    </div>
+
+    <div id="playView" style="display:none; width:100%;">
+      <div class="hud">
+        <div class="hud-box"><div class="hud-label">Day</div><div class="hud-value" id="dayValue">1</div></div>
+        <div class="hud-box"><div class="hud-label">골드</div><div class="hud-value" id="goldValue">0</div></div>
+        <div class="hud-box"><div class="hud-label">남은 시간</div><div class="hud-value" id="timeValue">60</div></div>
+      </div>
+      <div class="bill-bar">
+        <span class="label">다음 청구서 (Day <span id="nextBillDay">5</span>)</span>
+        <span class="value" id="billAmount">500</span>
+      </div>
+      <div class="game-arena" id="gameArena"></div>
+      <button class="coin-flip-btn" id="coinFlipBtn" onclick="playCoinFlip()">🪙 동전 게임 (골드 2배 도전!)</button>
+    </div>
+
+  </div>
+
+  <div class="overlay" id="billOverlay">
+    <div class="overlay-box">
+      <h2 id="billResultTitle">청구서 도착!</h2>
+      <p id="billResultText"></p>
+      <button class="overlay-btn" onclick="closeBillOverlay()">확인</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="gameOverOverlay">
+    <div class="overlay-box">
+      <h2>💥 파산했어요</h2>
+      <p id="gameOverText"></p>
+      <button class="overlay-btn" onclick="closeGameOver()">강화 상점으로</button>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+    function authHeadersJson() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+    function isLoggedIn() { return !!getToken(); }
+
+    if (!isLoggedIn()) {
+      document.getElementById('loginRequired').style.display = 'block';
+    } else {
+      document.getElementById('mainWrap').style.display = 'flex';
+    }
+
+    let state = { points: 0, attack_speed_lv: 0, coin_drop_lv: 0, wave_size_lv: 0, max_days_survived: 0 };
+    let skillTree = { points: 0, skills: {} };
+    let game = null; // 진행중 게임 상태
+    let dayTimer = null;
+    let pigSpawnTimer = null;
+
+    const SKILL_NAMES = {
+      crit_chance_1: '치명타 확률 I', crit_chance_2: '치명타 확률 II', crit_damage: '치명타 피해 증폭',
+      coin_drop: '코인 드랍 증가', gold_interest: '골드 이자', bill_discount: '청구서 할인',
+      wave_size: '웨이브 크기 증가', pig_lifetime: '돼지 생존시간 증가', golden_pig: '황금돼지 등장',
+      attack_speed: '공격속도 증가', lightning_strike: '번개 강타', chain_lightning: '연쇄 번개',
+    };
+
+    async function loadState() {
+      const [basicRes, treeRes] = await Promise.all([
+        fetch('/api/travel/pigbills/state', { headers: authHeaders() }),
+        fetch('/api/travel/pigbills/skilltree', { headers: authHeaders() }),
+      ]);
+      state = await basicRes.json();
+      skillTree = await treeRes.json();
+      renderLobby();
+    }
+
+    function renderLobby() {
+      document.getElementById('lobbyPoints').textContent = skillTree.points;
+      document.getElementById('lobbyMaxDays').textContent = state.max_days_survived + '일';
+      const totalLv = Object.values(skillTree.skills).reduce((sum, s) => sum + s.current_lv, 0);
+      document.getElementById('lobbyUpgradeCount').textContent = totalLv;
+
+      const quadrants = { crit: [], gold: [], pigs: [], skill: [] };
+      for (const [key, info] of Object.entries(skillTree.skills)) {
+        quadrants[info.quadrant].push({ key, ...info });
+      }
+
+      for (const q of ['crit', 'gold', 'pigs', 'skill']) {
+        const container = document.getElementById(`quadrant_${q}`);
+        container.innerHTML = quadrants[q].map(s => renderSkillNode(s)).join('');
+      }
+    }
+
+    function renderSkillNode(s) {
+      const locked = s.prereq && (skillTree.skills[s.prereq].current_lv <= 0);
+      const isMax = s.current_lv >= s.max_lv;
+      const cost = isMax ? null : s.costs[s.current_lv];
+      const canBuy = !locked && !isMax && skillTree.points >= cost;
+      const wrapClass = s.prereq ? 'skill-node skill-node-chain' : 'skill-node';
+      const lockedClass = locked ? ' locked' : '';
+      const btnLabel = isMax ? 'MAX' : `${cost}P`;
+      return `
+        <div class="${wrapClass}${lockedClass}">
+          <div>
+            <div class="skill-node-name">${SKILL_NAMES[s.key] || s.key}</div>
+            <div class="skill-node-lv">Lv.${s.current_lv}/${s.max_lv}</div>
+          </div>
+          <button class="skill-node-btn" ${(!canBuy) ? 'disabled' : ''} onclick="buySkill('${s.key}')">${btnLabel}</button>
+        </div>
+      `;
+    }
+
+    async function buySkill(skillKey) {
+      try {
+        const res = await fetch('/api/travel/pigbills/skilltree/upgrade', {
+          method: 'POST', headers: authHeadersJson(), body: JSON.stringify({ skill_key: skillKey })
+        });
+        if (!res.ok) { const err = await res.json(); alert(err.detail || '구매 실패'); return; }
+        await loadState();
+      } catch (e) { alert('구매에 실패했어요'); }
+    }
+
+    function calcBillAmount(billIndex) {
+      // billIndex: 0부터 시작 (첫 청구서 = 500원, 이후 45%씩 증가)
+      return Math.round(500 * Math.pow(1.45, billIndex));
+    }
+
+    function startGame() {
+      document.getElementById('lobbyView').style.display = 'none';
+      document.getElementById('playView').style.display = 'block';
+
+      game = {
+        day: 1,
+        gold: 0,
+        billIndex: 0,
+        timeLeft: 40,
+        canCoinFlip: false,
+      };
+      updatePlayHud();
+      startDayTimer();
+      startPigSpawner();
+    }
+
+    function updatePlayHud() {
+      document.getElementById('dayValue').textContent = game.day;
+      document.getElementById('goldValue').textContent = game.gold;
+      document.getElementById('timeValue').textContent = game.timeLeft;
+      const nextBillDay = (game.billIndex + 1) * 5;
+      document.getElementById('nextBillDay').textContent = nextBillDay;
+      document.getElementById('billAmount').textContent = calcBillAmount(game.billIndex).toLocaleString();
+
+      // 청구서 임박(다음 청구일까지 2일 이하) 시 아레나에 경고 효과
+      const daysUntilBill = nextBillDay - game.day;
+      const arena = document.getElementById('gameArena');
+      if (daysUntilBill <= 1) {
+        arena.classList.add('bill-warning');
+      } else {
+        arena.classList.remove('bill-warning');
+      }
+    }
+
+    function startDayTimer() {
+      clearInterval(dayTimer);
+      dayTimer = setInterval(() => {
+        game.timeLeft--;
+        if (game.timeLeft <= 0) {
+          endDay();
+        }
+        updatePlayHud();
+      }, 1000);
+    }
+
+    function endDay() {
+      game.day++;
+      game.timeLeft = 40;
+
+      // 동전게임 기회 제공
+      game.canCoinFlip = true;
+      document.getElementById('coinFlipBtn').classList.add('show');
+
+      // 5일마다 청구서 체크
+      if ((game.day - 1) % 5 === 0 && game.day > 1) {
+        checkBill();
+      }
+    }
+
+    function checkBill() {
+      const billAmount = calcBillAmount(game.billIndex);
+      game.billIndex++;
+      if (game.gold >= billAmount) {
+        game.gold -= billAmount;
+        showBillResult(true, billAmount);
+      } else {
+        showBillResult(false, billAmount);
+      }
+      updatePlayHud();
+    }
+
+    function showBillResult(success, amount) {
+      const overlay = document.getElementById('billOverlay');
+      const title = document.getElementById('billResultTitle');
+      const text = document.getElementById('billResultText');
+      if (success) {
+        title.textContent = '✅ 청구서 납부 완료';
+        text.textContent = `${amount.toLocaleString()}골드를 지불했어요. 계속 버텨봐요!`;
+        overlay.classList.add('active');
+      } else {
+        title.textContent = '💥 파산했어요';
+        text.textContent = `${amount.toLocaleString()}골드가 필요했지만 ${game.gold.toLocaleString()}골드밖에 없었어요.`;
+        endGame();
+      }
+    }
+
+    function closeBillOverlay() {
+      document.getElementById('billOverlay').classList.remove('active');
+    }
+
+    function playCoinFlip() {
+      if (!game.canCoinFlip) return;
+      game.canCoinFlip = false;
+      document.getElementById('coinFlipBtn').classList.remove('show');
+      const win = Math.random() < 0.5;
+      if (win) {
+        game.gold *= 2;
+        alert('🪙 동전 게임 성공! 골드가 2배가 됐어요!');
+      } else {
+        game.gold = Math.floor(game.gold / 2);
+        alert('🪙 동전 게임 실패... 골드가 절반이 됐어요.');
+      }
+      updatePlayHud();
+    }
+
+    let activePigCount = 0;
+
+    function startPigSpawner() {
+      spawnWave();
+    }
+
+    function spawnWave() {
+      if (!game) return;
+      const arena = document.getElementById('gameArena');
+      arena.innerHTML = '';
+      const waveSize = 5 + state.wave_size_lv;
+      activePigCount = 0;
+      for (let i = 0; i < waveSize; i++) {
+        setTimeout(() => spawnPig(), i * 80);
+      }
+    }
+
+    function spawnPig() {
+      if (!game) return;
+      const arena = document.getElementById('gameArena');
+      const pig = document.createElement('div');
+      pig.className = 'pig';
+      pig.textContent = '🐷';
+      const x = Math.random() * (arena.clientWidth - 50);
+      const y = Math.random() * (arena.clientHeight - 50);
+      pig.style.left = x + 'px';
+      pig.style.top = y + 'px';
+      const lifeMs = Math.min(3200, 2000 + state.attack_speed_lv * 150);
+      pig.onclick = (e) => popPig(pig, e);
+      arena.appendChild(pig);
+      activePigCount++;
+
+      setTimeout(() => {
+        if (pig.parentNode) {
+          pig.remove();
+          onPigCleared();
+        }
+      }, lifeMs);
+    }
+
+    function onPigCleared() {
+      activePigCount--;
+      if (activePigCount <= 0 && game) {
+        setTimeout(spawnWave, 300);
+      }
+    }
+
+    function popPig(pig, e) {
+      const coinDropBonus = 1 + (state.coin_drop_lv * 0.2); // 레벨당 20% 추가 골드
+      const baseGold = Math.floor(Math.random() * 15) + 5; // 5~19
+      const earned = Math.round(baseGold * coinDropBonus);
+      game.gold += earned;
+      updatePlayHud();
+
+      const arena = document.getElementById('gameArena');
+      const px = pig.style.left, py = pig.style.top;
+
+      // 화면 흔들림
+      arena.classList.remove('shaking');
+      void arena.offsetWidth; // reflow로 애니메이션 재시작 보장
+      arena.classList.add('shaking');
+      setTimeout(() => arena.classList.remove('shaking'), 250);
+
+      // 터지는 돼지 이펙트
+      const burst = document.createElement('div');
+      burst.className = 'pig-burst';
+      burst.textContent = '💥';
+      burst.style.left = px;
+      burst.style.top = py;
+      arena.appendChild(burst);
+      setTimeout(() => burst.remove(), 350);
+
+      // 파편(코인) 흩날리기
+      for (let i = 0; i < 6; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'burst-particle';
+        particle.style.left = px;
+        particle.style.top = py;
+        const angle = (Math.PI * 2 * i) / 6;
+        const dist = 30 + Math.random() * 20;
+        particle.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+        particle.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+        arena.appendChild(particle);
+        setTimeout(() => particle.remove(), 500);
+      }
+
+      const popText = document.createElement('div');
+      popText.className = 'pop-text';
+      popText.textContent = '+' + earned;
+      popText.style.left = px;
+      popText.style.top = py;
+      arena.appendChild(popText);
+      setTimeout(() => popText.remove(), 600);
+
+      pig.remove();
+      onPigCleared();
+    }
+
+    async function endGame() {
+      clearInterval(dayTimer);
+      clearInterval(pigSpawnTimer);
+      document.getElementById('coinFlipBtn').classList.remove('show');
+
+      try {
+        const res = await fetch('/api/travel/pigbills/run-end', {
+          method: 'POST', headers: authHeadersJson(),
+          body: JSON.stringify({ days_survived: game.day, final_gold: game.gold })
+        });
+        const result = await res.json();
+        document.getElementById('gameOverText').textContent =
+          `${game.day}일 동안 버텼어요! +${result.earned_points}P 획득`;
+      } catch (e) {
+        document.getElementById('gameOverText').textContent = `${game.day}일 동안 버텼어요!`;
+      }
+      document.getElementById('gameOverOverlay').classList.add('active');
+    }
+
+    async function closeGameOver() {
+      document.getElementById('gameOverOverlay').classList.remove('active');
+      document.getElementById('playView').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'block';
+      document.getElementById('gameArena').innerHTML = '';
+      await loadState();
+    }
+
+    if (isLoggedIn()) {
+      loadState();
+    }
+  </script>
+</body>
+</html>

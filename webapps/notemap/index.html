@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>노트맵</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>📝</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 24px;
+      font-size: 0.85rem;
+      color: #a0a0b8;
+    }
+    .top-bar a { color: #a0a0b8; text-decoration: none; }
+    .top-bar a#logoutLink {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+    h1 { margin: 0 0 20px; font-size: 1.6rem; text-align: center; }
+
+    .layout {
+      display: flex;
+      gap: 16px;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+      align-items: flex-start;
+    }
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .sidebar input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+    .new-note-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+    }
+    .note-list-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .note-list-item:hover { background: rgba(255,255,255,0.06); }
+    .note-list-item.active { background: rgba(233,69,96,0.18); color: #ff8fa3; }
+    .note-list-empty { color: #7a7a92; font-size: 0.8rem; text-align: center; padding: 20px 0; }
+
+    .main-area {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .empty-state {
+      text-align: center;
+      color: #8888a3;
+      padding: 80px 20px;
+      font-size: 0.9rem;
+    }
+    .note-title-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .note-content-textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: #e0e0f0;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .note-hint {
+      font-size: 0.75rem;
+      color: #8888a3;
+      margin: 6px 0 14px;
+    }
+    .note-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .note-actions button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .save-btn2 { background: linear-gradient(135deg, #e94560, #d63652); color: white; font-weight: bold; }
+    .delete-btn2 { background: rgba(255,255,255,0.08); color: #ff8fa3; }
+
+    .preview-box {
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      margin-bottom: 20px;
+    }
+    .wiki-link {
+      color: #ff8fa3;
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+    }
+    .backlinks-section {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 16px;
+    }
+    .backlinks-title {
+      font-size: 0.78rem;
+      color: #9090a8;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .backlink-chip {
+      display: inline-block;
+      background: rgba(255,255,255,0.06);
+      padding: 6px 12px;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      margin: 0 6px 6px 0;
+      cursor: pointer;
+      color: #c0c0d0;
+    }
+    .backlink-chip:hover { background: rgba(255,255,255,0.12); }
+    .login-required { text-align: center; color: #9999b3; margin-top: 60px; }
+    .login-required a { color: #ff8fa3; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 700px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; }
+    }
+
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) {
+      .float-chat-panel { width: calc(100vw - 48px); right: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <a href="#" onclick="doLogout()" id="logoutLink">로그아웃</a>
+  </div>
+
+  <h1>📝 노트맵</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="notemapApp" class="hidden layout">
+    <div class="sidebar">
+      <input type="text" id="searchInput" placeholder="메모 검색..." oninput="renderNoteList()">
+      <button class="new-note-btn" onclick="createNewNote()">+ 새 메모</button>
+      <div id="noteListBox"></div>
+    </div>
+
+    <div class="main-area" id="mainArea">
+      <div class="empty-state">왼쪽에서 메모를 선택하거나<br>새 메모를 만들어보세요</div>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('notemapApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('notemapApp').classList.remove('hidden');
+      return true;
+    }
+
+    function doLogout() {
+      localStorage.removeItem('travel_token');
+      localStorage.removeItem('travel_username');
+      location.href = '/hub/';
+    }
+
+    let cachedNotes = [];
+    let currentNoteId = null;
+
+    async function loadNotes() {
+      try {
+        const res = await fetch('/api/travel/notes', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        cachedNotes = await res.json();
+        renderNoteList();
+      } catch (err) {}
+    }
+
+    function renderNoteList() {
+      const box = document.getElementById('noteListBox');
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      let notes = cachedNotes;
+      if (query) {
+        notes = notes.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query));
+      }
+      if (notes.length === 0) {
+        box.innerHTML = '<div class="note-list-empty">메모가 없어요</div>';
+        return;
+      }
+      box.innerHTML = notes.map(n => `
+        <div class="note-list-item ${n.id === currentNoteId ? 'active' : ''}" onclick="openNote(${n.id})">
+          <span>${n.title}</span>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderPreview(content) {
+      const escaped = escapeHtml(content);
+      return escaped.replace(/\[\[(.+?)\]\]/g, (match, title) => {
+        return `<span class="wiki-link" onclick="openNoteByTitle('${title.replace(/'/g, "\\'")}')">${title}</span>`;
+      });
+    }
+
+    async function openNote(id) {
+      currentNoteId = id;
+      renderNoteList();
+      try {
+        const res = await fetch(`/api/travel/notes/${id}`, {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const note = await res.json();
+        renderNoteEditor(note);
+      } catch (err) {}
+    }
+
+    async function openNoteByTitle(title) {
+      try {
+        const res = await fetch(`/api/travel/notes-by-title/${encodeURIComponent(title)}`, {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        const data = await res.json();
+        if (data && data.id) {
+          openNote(data.id);
+        } else {
+          const createRes = await fetch('/api/travel/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({ title, content: '' })
+          });
+          const created = await createRes.json();
+          await loadNotes();
+          openNote(created.id);
+        }
+      } catch (err) {}
+    }
+
+    function renderNoteEditor(note) {
+      const area = document.getElementById('mainArea');
+      area.innerHTML = `
+        <input type="text" class="note-title-input" id="editTitle" value="${escapeHtml(note.title)}">
+        <textarea class="note-content-textarea" id="editContent" oninput="updatePreview()">${escapeHtml(note.content)}</textarea>
+        <div class="note-hint">💡 [[다른 메모 제목]] 형식으로 쓰면 자동으로 연결됩니다</div>
+        <div class="note-actions">
+          <button class="save-btn2" onclick="saveNote(${note.id})">💾 저장</button>
+          <button class="delete-btn2" onclick="deleteNote(${note.id})">🗑️ 삭제</button>
+        </div>
+        <div class="preview-box" id="previewBox">${renderPreview(note.content)}</div>
+        <div class="backlinks-section">
+          <div class="backlinks-title">🔗 이 메모를 참조하는 메모 (${note.backlinks.length})</div>
+          <div id="backlinksBox">
+            ${note.backlinks.length === 0
+              ? '<span style="color:#7a7a92; font-size:0.82rem;">아직 없어요</span>'
+              : note.backlinks.map(b => `<span class="backlink-chip" onclick="openNote(${b.id})">${b.title}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function updatePreview() {
+      const content = document.getElementById('editContent').value;
+      document.getElementById('previewBox').innerHTML = renderPreview(content);
+    }
+
+    async function createNewNote() {
+      const title = prompt('새 메모 제목을 입력하세요');
+      if (!title || !title.trim()) return;
+      try {
+        const res = await fetch('/api/travel/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify({ title: title.trim(), content: '' })
+        });
+        const data = await res.json();
+        await loadNotes();
+        openNote(data.id);
+      } catch (err) {}
+    }
+
+    async function saveNote(id) {
+      const title = document.getElementById('editTitle').value.trim();
+      const content = document.getElementById('editContent').value;
+      if (!title) {
+        alert('제목을 입력해주세요');
+        return;
+      }
+      try {
+        await fetch(`/api/travel/notes/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+          body: JSON.stringify({ title, content })
+        });
+        await loadNotes();
+        openNote(id);
+      } catch (err) {}
+    }
+
+    async function deleteNote(id) {
+      if (!confirm('이 메모를 삭제할까요?')) return;
+      try {
+        await fetch(`/api/travel/notes/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        currentNoteId = null;
+        document.getElementById('mainArea').innerHTML = '<div class="empty-state">왼쪽에서 메모를 선택하거나<br>새 메모를 만들어보세요</div>';
+        await loadNotes();
+      } catch (err) {}
+    }
+
+    if (checkAuth()) {
+      loadNotes();
+    }
+
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) connectFloatChat();
+    }
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+      floatChatSocket.onopen = () => { document.getElementById('floatChatMessages').innerHTML = ''; };
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => { const p = document.getElementById('floatChatPanel'); if (p.classList.contains('active')) connectFloatChat(); }, 3000);
+      };
+    }
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

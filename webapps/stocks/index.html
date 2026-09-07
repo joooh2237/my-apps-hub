@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>국내주식 검색</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #0a0f1e 100%);
+      color: #e2e8f0;
+      margin: 0;
+      padding: 24px 16px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 480px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .top-bar a { color: #93c5fd; text-decoration: none; font-size: 0.85rem; }
+    .pip-btn {
+      background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4);
+      border-radius: 20px; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; cursor: pointer;
+    }
+    .pip-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    h1 { font-size: 1.4rem; margin: 0 0 18px; color: #f8fafc; align-self: flex-start; max-width: 480px; }
+    .wrap { width: 100%; max-width: 480px; }
+
+    .section-label { font-size: 0.78rem; color: #94a3b8; font-weight: bold; margin: 0 0 8px; letter-spacing: 0.3px; }
+    .watchlist-box {
+      background: #111827; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 20px; overflow: hidden;
+    }
+    .watch-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 11px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); gap: 8px;
+    }
+    .watch-item:last-child { border-bottom: none; }
+    .watch-item:hover { background: rgba(59,130,246,0.08); }
+    .wl-name { font-weight: 600; font-size: 0.88rem; }
+    .wl-code { font-size: 0.68rem; color: #64748b; margin-top: 1px; }
+    .wl-price { font-size: 0.9rem; font-weight: 700; text-align: right; }
+    .wl-change { font-size: 0.68rem; text-align: right; }
+    .wl-price.up, .wl-change.up { color: #f87171; }
+    .wl-price.down, .wl-change.down { color: #60a5fa; }
+    .wl-price.flat, .wl-change.flat { color: #cbd5e1; }
+
+    .star-btn {
+      background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #475569;
+      padding: 2px 4px; line-height: 1; flex-shrink: 0;
+    }
+    .star-btn.active { color: #fbbf24; }
+
+    .search-box { position: relative; margin-bottom: 8px; }
+    .search-box input {
+      width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06); color: #f8fafc; font-size: 1rem; outline: none;
+    }
+    .search-box input::placeholder { color: #64748b; }
+    .search-box input:focus { border-color: #3b82f6; }
+    .result-list {
+      background: #111827; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden; margin-top: 4px;
+    }
+    .result-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); gap: 8px;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item:hover, .result-item:active { background: rgba(59,130,246,0.12); }
+    .result-name { font-weight: 600; font-size: 0.95rem; }
+    .result-code { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+    .result-right { display: flex; align-items: center; gap: 6px; }
+    .market-badge {
+      font-size: 0.68rem; font-weight: bold; padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+    }
+    .market-badge.KOSPI { background: rgba(59,130,246,0.18); color: #93c5fd; }
+    .market-badge.KOSDAQ { background: rgba(168,85,247,0.18); color: #d8b4fe; }
+    .empty-hint { text-align: center; color: #64748b; font-size: 0.82rem; padding: 20px 14px; }
+    .loading-hint { text-align: center; color: #64748b; font-size: 0.85rem; padding: 14px 0; }
+
+    .price-card {
+      margin-top: 20px; background: #111827; border-radius: 16px; padding: 22px;
+      border: 1px solid rgba(255,255,255,0.08); display: none;
+    }
+    .price-card.active { display: block; }
+    .price-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+    .price-card-name-row { display: flex; align-items: center; gap: 6px; }
+    .price-card-name { font-size: 1.2rem; font-weight: 800; color: #f8fafc; }
+    .price-card-code { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .price-card-market { font-size: 0.72rem; color: #94a3b8; }
+    .price-main { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 4px; }
+    .price-value { font-size: 2rem; font-weight: 900; }
+    .price-value.up { color: #f87171; }
+    .price-value.down { color: #60a5fa; }
+    .price-value.flat { color: #cbd5e1; }
+    .price-change { font-size: 0.95rem; font-weight: 700; }
+    .price-change.up { color: #f87171; }
+    .price-change.down { color: #60a5fa; }
+    .price-change.flat { color: #94a3b8; }
+    .price-status {
+      display: inline-block; font-size: 0.68rem; font-weight: bold; padding: 3px 9px;
+      border-radius: 20px; margin-top: 6px; background: rgba(255,255,255,0.08); color: #cbd5e1;
+    }
+    .price-status.OPEN { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .price-detail-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px;
+      padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .price-detail-item { font-size: 0.8rem; color: #94a3b8; }
+    .price-detail-item b { color: #e2e8f0; display: block; font-size: 0.9rem; margin-top: 2px; }
+    .updated-at { text-align: right; font-size: 0.68rem; color: #475569; margin-top: 14px; }
+    .disclaimer { margin-top: 24px; font-size: 0.72rem; color: #475569; text-align: center; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <button class="pip-btn" id="pipBtn">📌 PIP로 띄우기</button>
+  </div>
+  <h1>📈 국내주식 검색</h1>
+
+  <div id="loginRequired" class="wrap" style="display:none; text-align:center; margin-top:60px; color:#94a3b8;">
+    로그인이 필요해요. <a href="/hub/" style="color:#93c5fd;">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="mainWrap" class="wrap">
+    <div class="section-label">⭐ 찜한 종목 (7초마다 자동 갱신)</div>
+    <div id="watchlistBox" class="watchlist-box">
+      <div class="empty-hint">불러오는 중...</div>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="종목명 또는 종목코드로 검색 (예: 삼성전자)" autocomplete="off">
+    </div>
+    <div id="resultList" class="result-list" style="display:none;"></div>
+
+    <div id="priceCard" class="price-card">
+      <div class="price-card-header">
+        <div>
+          <div class="price-card-name-row">
+            <span class="price-card-name" id="pName">-</span>
+            <button class="star-btn" id="starBtn" onclick="toggleCurrentStar()">☆</button>
+          </div>
+          <div class="price-card-code" id="pCode">-</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="price-card-market" id="pMarket">-</span><br>
+          <span class="price-status" id="pStatus">-</span>
+        </div>
+      </div>
+      <div class="price-main">
+        <span class="price-value" id="pPrice">-</span>
+        <span class="price-change" id="pChange">-</span>
+      </div>
+      <div class="price-detail-grid">
+        <div class="price-detail-item">시가 <b id="pOpen">-</b></div>
+        <div class="price-detail-item">거래량 <b id="pVolume">-</b></div>
+        <div class="price-detail-item">고가 <b id="pHigh">-</b></div>
+        <div class="price-detail-item">저가 <b id="pLow">-</b></div>
+      </div>
+      <div class="updated-at" id="pUpdated"></div>
+    </div>
+
+    <div class="disclaimer">
+      시세는 네이버 금융 데이터를 기반으로 하며 약간의 지연이 있을 수 있어요.<br>
+      투자 판단의 참고용일 뿐, 투자 조언이 아니에요.
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+    function authHeadersJson() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+    function isLoggedIn() { return !!getToken(); }
+
+    if (!isLoggedIn()) {
+      document.getElementById('loginRequired').style.display = 'block';
+      document.getElementById('mainWrap').style.display = 'none';
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    const resultList = document.getElementById('resultList');
+    const priceCard = document.getElementById('priceCard');
+    let debounceTimer = null;
+    let watchlist = []; // [{code,name,market,_price}]
+    let currentCode = null, currentName = null, currentMarket = null;
+    let pipWindow = null;
+
+    // ---------- 검색 ----------
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const q = searchInput.value.trim();
+      if (!q) { resultList.style.display = 'none'; resultList.innerHTML = ''; return; }
+      debounceTimer = setTimeout(() => runSearch(q), 300);
+    });
+
+    async function runSearch(q) {
+      resultList.style.display = 'block';
+      resultList.innerHTML = '<div class="loading-hint">검색 중...</div>';
+      try {
+        const res = await fetch('/api/travel/stock/search?q=' + encodeURIComponent(q), { headers: authHeaders() });
+        if (!res.ok) { resultList.innerHTML = '<div class="empty-hint">검색에 실패했어요</div>'; return; }
+        const items = await res.json();
+        if (items.length === 0) { resultList.innerHTML = '<div class="empty-hint">검색 결과가 없어요</div>'; return; }
+        resultList.innerHTML = items.map(it => {
+          const safeName = it.name.replace(/'/g, "&#39;");
+          const isWatched = watchlist.some(w => w.code === it.code);
+          return `
+          <div class="result-item" onclick="selectStock('${it.code}', '${safeName}', '${it.market}')">
+            <div>
+              <div class="result-name">${it.name}</div>
+              <div class="result-code">${it.code}</div>
+            </div>
+            <div class="result-right">
+              <span class="market-badge ${it.market}">${it.market === 'KOSPI' ? '코스피' : '코스닥'}</span>
+              <button class="star-btn ${isWatched ? 'active' : ''}" onclick="event.stopPropagation(); toggleWatch('${it.code}','${safeName}','${it.market}')">${isWatched ? '★' : '☆'}</button>
+            </div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        resultList.innerHTML = '<div class="empty-hint">검색에 실패했어요</div>';
+      }
+    }
+
+    async function selectStock(code, name, market) {
+      resultList.style.display = 'none';
+      searchInput.value = name;
+      currentCode = code; currentName = name; currentMarket = market;
+      await loadPrice(code);
+      updateStarButtonState();
+    }
+
+    async function loadPrice(code) {
+      try {
+        const res = await fetch('/api/travel/stock/price/' + code, { headers: authHeaders() });
+        if (!res.ok) { alert('시세 조회에 실패했어요'); return; }
+        const d = await res.json();
+        renderPrice(d);
+      } catch (e) {
+        alert('시세 조회에 실패했어요');
+      }
+    }
+
+    function renderPrice(d) {
+      const dirClass = d.changeDirection === '상승' ? 'up' : (d.changeDirection === '하락' ? 'down' : 'flat');
+      const sign = dirClass === 'up' ? '▲' : (dirClass === 'down' ? '▼' : '-');
+
+      document.getElementById('pName').textContent = d.name || currentName || '-';
+      document.getElementById('pCode').textContent = d.code;
+      document.getElementById('pMarket').textContent = d.market || '';
+      const statusEl = document.getElementById('pStatus');
+      statusEl.textContent = d.marketStatus === 'OPEN' ? '장중' : (d.marketStatus || '-');
+      statusEl.className = 'price-status ' + (d.marketStatus || '');
+
+      const priceEl = document.getElementById('pPrice');
+      priceEl.textContent = (d.price || '-') + '원';
+      priceEl.className = 'price-value ' + dirClass;
+
+      const changeEl = document.getElementById('pChange');
+      changeEl.textContent = `${sign} ${d.change || 0} (${d.changeRate || 0}%)`;
+      changeEl.className = 'price-change ' + dirClass;
+
+      document.getElementById('pOpen').textContent = (d.open || '-') + '원';
+      document.getElementById('pHigh').textContent = (d.high || '-') + '원';
+      document.getElementById('pLow').textContent = (d.low || '-') + '원';
+      document.getElementById('pVolume').textContent = (d.volume || '-');
+
+      if (d.updatedAt) {
+        const t = new Date(d.updatedAt);
+        document.getElementById('pUpdated').textContent = '업데이트: ' + t.toLocaleTimeString('ko-KR');
+      }
+      priceCard.classList.add('active');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-box') && !e.target.closest('.result-list')) {
+        resultList.style.display = 'none';
+      }
+    });
+
+    // ---------- 찜목록 ----------
+    function updateStarButtonState() {
+      const btn = document.getElementById('starBtn');
+      const isWatched = watchlist.some(w => w.code === currentCode);
+      btn.textContent = isWatched ? '★' : '☆';
+      btn.className = 'star-btn ' + (isWatched ? 'active' : '');
+    }
+
+    function toggleCurrentStar() {
+      if (!currentCode) return;
+      toggleWatch(currentCode, currentName, currentMarket);
+    }
+
+    async function toggleWatch(code, name, market) {
+      const isWatched = watchlist.some(w => w.code === code);
+      try {
+        if (isWatched) {
+          await fetch('/api/travel/stock/watchlist/' + code, { method: 'DELETE', headers: authHeaders() });
+        } else {
+          await fetch('/api/travel/stock/watchlist', { method: 'POST', headers: authHeadersJson(), body: JSON.stringify({ code, name, market }) });
+        }
+      } catch (e) {}
+      await loadWatchlist();
+      updateStarButtonState();
+      if (searchInput.value.trim()) runSearch(searchInput.value.trim());
+    }
+
+    async function loadWatchlist() {
+      try {
+        const res = await fetch('/api/travel/stock/watchlist', { headers: authHeaders() });
+        if (!res.ok) return;
+        const items = await res.json();
+        const priceMap = {};
+        watchlist.forEach(w => { priceMap[w.code] = w._price; });
+        watchlist = items.map(it => ({ ...it, _price: priceMap[it.code] }));
+        renderWatchlistBox();
+        refreshWatchlistPrices();
+      } catch (e) {}
+    }
+
+    async function refreshWatchlistPrices() {
+      if (watchlist.length === 0) { renderWatchlistBox(); return; }
+      const results = await Promise.all(watchlist.map(w =>
+        fetch('/api/travel/stock/price/' + w.code, { headers: authHeaders() })
+          .then(r => r.ok ? r.json() : null).catch(() => null)
+      ));
+      results.forEach((d, i) => { if (d) watchlist[i]._price = d; });
+      renderWatchlistBox();
+      renderPipList();
+    }
+
+    function renderWatchlistBox() {
+      const box = document.getElementById('watchlistBox');
+      if (watchlist.length === 0) {
+        box.innerHTML = '<div class="empty-hint">찜한 종목이 없어요. 검색해서 별 아이콘(☆)을 눌러보세요.</div>';
+        return;
+      }
+      box.innerHTML = watchlist.map(w => {
+        const d = w._price;
+        const dirClass = d ? (d.changeDirection === '상승' ? 'up' : d.changeDirection === '하락' ? 'down' : 'flat') : '';
+        const safeName = w.name.replace(/'/g, "&#39;");
+        return `
+        <div class="watch-item" onclick="selectStock('${w.code}','${safeName}','${w.market}')">
+          <div>
+            <div class="wl-name">${w.name}</div>
+            <div class="wl-code">${w.code}</div>
+          </div>
+          <div>
+            <div class="wl-price ${dirClass}">${d ? Number(d.price.replace(/,/g,'')).toLocaleString() + '원' : '...'}</div>
+            <div class="wl-change ${dirClass}">${d ? d.changeRate + '%' : ''}</div>
+          </div>
+          <button class="star-btn active" onclick="event.stopPropagation(); toggleWatch('${w.code}','${safeName}','${w.market}')">★</button>
+        </div>`;
+      }).join('');
+    }
+
+    // ---------- PIP ----------
+    const pipBtn = document.getElementById('pipBtn');
+    if (!('documentPictureInPicture' in window)) {
+      pipBtn.disabled = true;
+      pipBtn.textContent = '📌 PIP 미지원 브라우저';
+    }
+
+    pipBtn.addEventListener('click', async () => {
+      if (!('documentPictureInPicture' in window)) {
+        alert('이 브라우저는 PIP 기능을 지원하지 않아요. 최신 데스크톱 Chrome에서 이용해주세요.');
+        return;
+      }
+      if (pipWindow) { pipWindow.focus(); return; }
+      try {
+        pipWindow = await documentPictureInPicture.requestWindow({ width: 300, height: 420 });
+      } catch (e) {
+        alert('PIP 창을 여는 데 실패했어요.');
+        return;
+      }
+      const style = pipWindow.document.createElement('style');
+      style.textContent = `
+        * { box-sizing: border-box; }
+        body { margin:0; padding:12px; background:#0f172a; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,sans-serif; }
+        .pip-title { font-size:0.8rem; color:#94a3b8; margin-bottom:10px; font-weight:bold; }
+        .pip-item { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:0.85rem; }
+        .pip-item:last-child { border-bottom:none; }
+        .pip-name { font-weight:600; }
+        .pip-code { font-size:0.65rem; color:#64748b; margin-top:1px; }
+        .pip-price { font-weight:700; text-align:right; }
+        .pip-change { font-size:0.68rem; text-align:right; }
+        .pip-up { color:#f87171; } .pip-down { color:#60a5fa; } .pip-flat { color:#cbd5e1; }
+        .pip-empty { color:#64748b; font-size:0.8rem; text-align:center; padding:20px 0; }
+        .pip-quicklinks { display:flex; gap:6px; margin-bottom:12px; }
+        .pip-quicklink {
+          flex:1; text-align:center; font-size:0.7rem; font-weight:bold; text-decoration:none;
+          padding:7px 4px; border-radius:8px; background:rgba(59,130,246,0.15); color:#93c5fd;
+          border:1px solid rgba(59,130,246,0.35);
+        }
+        .pip-quicklink:hover { background:rgba(59,130,246,0.25); }
+      `;
+      pipWindow.document.head.appendChild(style);
+
+      const quicklinks = pipWindow.document.createElement('div');
+      quicklinks.className = 'pip-quicklinks';
+      quicklinks.innerHTML = `
+        <a class="pip-quicklink" href="/todo/" target="_blank" rel="noopener">✅ 할일목록</a>
+        <a class="pip-quicklink" href="/hub/" target="_blank" rel="noopener">🏠 허브</a>
+      `;
+      pipWindow.document.body.appendChild(quicklinks);
+
+      const container = pipWindow.document.createElement('div');
+      container.id = 'pipList';
+      pipWindow.document.body.appendChild(container);
+      renderPipList();
+      pipWindow.addEventListener('pagehide', () => { pipWindow = null; });
+    });
+
+    function renderPipList() {
+      if (!pipWindow) return;
+      const container = pipWindow.document.getElementById('pipList');
+      if (!container) return;
+      if (watchlist.length === 0) {
+        container.innerHTML = '<div class="pip-empty">찜한 종목이 없어요</div>';
+        return;
+      }
+      container.innerHTML = '<div class="pip-title">⭐ 찜한 종목 실시간</div>' + watchlist.map(w => {
+        const d = w._price;
+        const dirClass = d ? (d.changeDirection === '상승' ? 'pip-up' : d.changeDirection === '하락' ? 'pip-down' : 'pip-flat') : '';
+        return `<div class="pip-item">
+          <div><div class="pip-name">${w.name}</div><div class="pip-code">${w.code}</div></div>
+          <div><div class="pip-price ${dirClass}">${d ? Number(d.price.replace(/,/g,'')).toLocaleString() + '원' : '...'}</div><div class="pip-change ${dirClass}">${d ? d.changeRate + '%' : ''}</div></div>
+        </div>`;
+      }).join('');
+    }
+
+    // ---------- 초기화 ----------
+    if (isLoggedIn()) {
+      loadWatchlist();
+      setInterval(refreshWatchlistPrices, 7000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>지원 현황 관리</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(160deg, #0f172a 0%, #0a0f1e 100%);
+      color: #e2e8f0;
+      margin: 0;
+      padding: 24px 16px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .top-bar { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .top-bar a { color: #93c5fd; text-decoration: none; font-size: 0.85rem; }
+    h1 { font-size: 1.4rem; margin: 0 0 18px; color: #f8fafc; align-self: flex-start; max-width: 900px; width: 100%; }
+    .wrap { width: 100%; max-width: 900px; }
+
+    .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .add-btn {
+      padding: 10px 16px; border-radius: 8px; border: none; background: #2563eb; color: white;
+      font-weight: 600; font-size: 0.85rem; cursor: pointer;
+    }
+    .filter-select {
+      padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(30,41,59,0.8); color: #f1f5f9; font-size: 0.8rem;
+    }
+    .count-info { font-size: 0.78rem; color: #64748b; margin-left: auto; }
+
+    .main-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .main-tab {
+      padding: 10px 18px; border: none; background: none; color: #64748b; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .main-tab.active { color: #f1f5f9; border-bottom-color: #2563eb; }
+    .search-row { margin-bottom: 12px; }
+    .search-row input {
+      width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(30,41,59,0.7); color: #f1f5f9; font-size: 0.85rem; outline: none;
+    }
+    .search-row input::placeholder { color: #64748b; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stat-box {
+      background: rgba(30,41,59,0.6); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+      padding: 12px; text-align: center;
+    }
+    .stat-box .stat-num { font-size: 1.4rem; font-weight: 800; color: #f1f5f9; }
+    .stat-box .stat-label { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+    .stat-box.total .stat-num { color: #93c5fd; }
+    .stat-box.pass .stat-num { color: #4ade80; }
+    .stat-box.reject .stat-num { color: #f87171; }
+    .card-list { display: flex; flex-direction: column; gap: 10px; }
+    .app-card {
+      background: rgba(30,41,59,0.6); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .app-card.rejected { opacity: 0.5; }
+    .app-card.rejected .company-name { text-decoration: line-through; }
+    .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .company-name { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+    .platform-links { display: flex; gap: 6px; margin-top: 4px; }
+    .platform-btn {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 9px; border-radius: 6px; cursor: pointer;
+      text-decoration: none; border: 1px solid transparent;
+    }
+    .platform-btn.saramin { background: rgba(59,130,246,0.12); color: #93c5fd; border-color: rgba(59,130,246,0.3); }
+    .platform-btn.jobkorea { background: rgba(34,197,94,0.12); color: #4ade80; border-color: rgba(34,197,94,0.3); }
+    .position-name { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+    .status-badge {
+      font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap;
+    }
+    .status-검토중 { background: rgba(168,85,247,0.15); color: #c4b5fd; }
+    .status-지원함 { background: rgba(148,163,184,0.15); color: #cbd5e1; }
+    .status-열람 { background: rgba(59,130,246,0.15); color: #93c5fd; }
+    .status-미열람 { background: rgba(100,116,139,0.15); color: #94a3b8; }
+    .status-서류통과 { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .status-불합격 { background: rgba(239,68,68,0.15); color: #f87171; }
+
+    .app-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.78rem; color: #94a3b8; }
+    .app-meta span b { color: #cbd5e1; }
+    .app-memo { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+    .app-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .app-actions button {
+      padding: 5px 10px; border-radius: 6px; border: none; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-edit { background: rgba(59,130,246,0.12); color: #93c5fd; }
+    .btn-delete { background: rgba(239,68,68,0.12); color: #f87171; }
+
+    .empty-hint { text-align: center; color: #64748b; font-size: 0.85rem; padding: 40px 0; }
+
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: #1e293b; border-radius: 16px; padding: 24px; width: 100%; max-width: 420px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-box h2 { font-size: 1.05rem; margin: 0 0 16px; color: #f1f5f9; }
+    .modal-box label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; margin-top: 10px; }
+    .modal-box label:first-of-type { margin-top: 0; }
+    .modal-box input, .modal-box select, .modal-box textarea {
+      width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(15,23,42,0.7); color: #f1f5f9; font-size: 0.85rem; outline: none; font-family: inherit;
+    }
+    .modal-box textarea { min-height: 60px; resize: vertical; }
+    .modal-btn-row { display: flex; gap: 8px; margin-top: 18px; }
+    .modal-btn-row button {
+      flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+    }
+    .btn-cancel { background: #334155; color: #cbd5e1; }
+    .btn-save { background: #2563eb; color: white; }
+
+    .login-required { text-align: center; margin-top: 60px; color: #94a3b8; }
+    .login-required a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+  </div>
+  <h1>📋 지원 현황 관리</h1>
+
+  <div id="loginRequired" class="login-required" style="display:none;">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="mainWrap" class="wrap" style="display:none;">
+    <div class="main-tabs">
+      <button class="main-tab active" id="tabApplied" onclick="switchTab('applied')">지원현황</button>
+      <button class="main-tab" id="tabOld" onclick="switchTab('old')">오래된 지원</button>
+      <button class="main-tab" id="tabRejected" onclick="switchTab('rejected')">불합격</button>
+      <button class="main-tab" id="tabCandidate" onclick="switchTab('candidate')">검토중 후보</button>
+    </div>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="🔍 회사명으로 검색" oninput="renderList()">
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="toolbar">
+      <button class="add-btn" onclick="openModal()">+ 지원 추가</button>
+      <select class="filter-select" id="statusFilter" onchange="renderList()">
+        <option value="all">전체 보기</option>
+        <option value="active">진행중만 (불합격 제외)</option>
+        <option value="지원함">지원함</option>
+        <option value="열람">열람</option>
+        <option value="미열람">미열람</option>
+        <option value="서류통과">서류통과</option>
+        <option value="불합격">불합격</option>
+      </select>
+      <span class="count-info" id="countInfo"></span>
+    </div>
+    <div class="card-list" id="cardList"></div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <h2 id="modalTitle">지원 추가</h2>
+      <input type="hidden" id="editId">
+      <label>회사명</label>
+      <input type="text" id="f_company" placeholder="예: 링네트">
+      <label>직무</label>
+      <input type="text" id="f_position" placeholder="예: 네트워크 엔지니어">
+      <label>지원일</label>
+      <input type="date" id="f_apply_date">
+      <label>집에서 거리</label>
+      <input type="text" id="f_distance" placeholder="예: 40분, 15km">
+      <label>잡플래닛 평점</label>
+      <input type="text" id="f_jobplanet_rating" placeholder="예: 3.5">
+      <label>지원경로</label>
+      <select id="f_apply_channel">
+        <option value="">선택 안함</option>
+        <option value="사람인">사람인</option>
+        <option value="잡코리아">잡코리아</option>
+        <option value="회사 홈페이지">회사 홈페이지</option>
+        <option value="기타">기타</option>
+      </select>
+      <label>상태</label>
+      <select id="f_status">
+        <option value="검토중">검토중(후보)</option>
+        <option value="지원함">지원함</option>
+        <option value="열람">열람</option>
+        <option value="미열람">미열람</option>
+        <option value="서류통과">서류통과</option>
+        <option value="불합격">불합격</option>
+      </select>
+      <label>메모</label>
+      <textarea id="f_memo" placeholder="참고 메모"></textarea>
+      <div class="modal-btn-row">
+        <button class="btn-cancel" onclick="closeModal()">취소</button>
+        <button class="btn-save" onclick="saveApplication()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function authHeaders() { return { 'Authorization': `Bearer ${getToken()}` }; }
+    function authHeadersJson() { return { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' }; }
+    function isLoggedIn() { return !!getToken(); }
+
+    if (!isLoggedIn()) {
+      document.getElementById('loginRequired').style.display = 'block';
+    } else {
+      document.getElementById('mainWrap').style.display = 'block';
+    }
+
+    let applications = [];
+    let currentTab = 'applied';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabApplied').classList.toggle('active', tab === 'applied');
+      document.getElementById('tabOld').classList.toggle('active', tab === 'old');
+      document.getElementById('tabRejected').classList.toggle('active', tab === 'rejected');
+      document.getElementById('tabCandidate').classList.toggle('active', tab === 'candidate');
+      const toolbarFilter = document.getElementById('statusFilter');
+      toolbarFilter.style.display = (tab === 'applied') ? '' : 'none';
+      renderList();
+    }
+
+    function isOldApplication(a) {
+      if (!a.apply_date) return false;
+      const applyDate = new Date(a.apply_date);
+      const now = new Date();
+      const diffDays = (now - applyDate) / (1000 * 60 * 60 * 24);
+      return diffDays >= 14;
+    }
+
+    async function loadApplications() {
+      try {
+        const res = await fetch('/api/travel/job-applications', { headers: authHeaders() });
+        if (!res.ok) return;
+        const result = await res.json();
+        applications = result.applications || [];
+        renderList();
+      } catch (e) {}
+    }
+
+    function renderStats() {
+      const total = applications.length;
+      const counts = { "검토중": 0, "지원함": 0, "열람": 0, "미열람": 0, "서류통과": 0, "불합격": 0 };
+      applications.forEach(a => { if (counts[a.status] !== undefined) counts[a.status]++; });
+      const statsEl = document.getElementById('statsRow');
+      statsEl.innerHTML = `
+        <div class="stat-box total"><div class="stat-num">${total}</div><div class="stat-label">전체</div></div>
+        <div class="stat-box"><div class="stat-num">${counts['검토중']}</div><div class="stat-label">검토중</div></div>
+        <div class="stat-box"><div class="stat-num">${counts['지원함']}</div><div class="stat-label">지원함</div></div>
+        <div class="stat-box"><div class="stat-num">${counts['열람'] + counts['미열람']}</div><div class="stat-label">열람/미열람</div></div>
+        <div class="stat-box pass"><div class="stat-num">${counts['서류통과']}</div><div class="stat-label">서류통과</div></div>
+        <div class="stat-box reject"><div class="stat-num">${counts['불합격']}</div><div class="stat-label">불합격</div></div>
+      `;
+    }
+
+    function renderList() {
+      renderStats();
+      const filter = document.getElementById('statusFilter').value;
+      const searchTerm = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+      let pool;
+      if (currentTab === 'candidate') {
+        pool = applications.filter(a => a.status === '검토중');
+      } else if (currentTab === 'rejected') {
+        pool = applications.filter(a => a.status === '불합격');
+      } else if (currentTab === 'old') {
+        pool = applications.filter(a => a.status !== '검토중' && a.status !== '불합격' && isOldApplication(a));
+      } else {
+        // applied 탭: 검토중/불합격 제외 + 오래되지 않은 것만
+        pool = applications.filter(a => a.status !== '검토중' && a.status !== '불합격' && !isOldApplication(a));
+      }
+
+      let filtered = pool;
+      if (currentTab === 'applied' && filter !== 'all' && filter !== 'active') {
+        filtered = pool.filter(a => a.status === filter);
+      }
+
+      if (searchTerm) {
+        filtered = filtered.filter(a => (a.company || '').toLowerCase().includes(searchTerm));
+      }
+
+      filtered = [...filtered].sort((a, b) => {
+        const priority = { '서류통과': 0, '열람': 1, '지원함': 2, '미열람': 3, '검토중': 4, '불합격': 5 };
+        const pa = priority[a.status] ?? 5;
+        const pb = priority[b.status] ?? 5;
+        if (pa !== pb) return pa - pb;
+        return (b.apply_date || '').localeCompare(a.apply_date || '');
+      });
+
+      const listEl = document.getElementById('cardList');
+      document.getElementById('countInfo').textContent = `총 ${pool.length}건 중 ${filtered.length}건 표시`;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="empty-hint">표시할 지원 내역이 없어요</div>';
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(a => {
+        const isRejected = a.status === '불합격';
+        const metaParts = [];
+        if (a.apply_date) metaParts.push(`<span>지원일 <b>${a.apply_date}</b></span>`);
+        if (a.distance) metaParts.push(`<span>거리 <b>${a.distance}</b></span>`);
+        if (a.jobplanet_rating) metaParts.push(`<span>잡플래닛 <b>★${a.jobplanet_rating}</b></span>`);
+        if (a.updated_at) metaParts.push(`<span>${formatRelativeTime(a.updated_at)}</span>`);
+        return `
+          <div class="app-card ${isRejected ? 'rejected' : ''}">
+            <div class="app-header">
+              <div>
+                <div class="company-name">${escapeHtml(a.company)}</div>
+                <div class="platform-links">
+                  <a class="platform-btn saramin" href="#" onclick="openJobPlatform(event, 'saramin', '${escapeHtml(a.company).replace(/'/g, "\\'")}')">사람인 🔗</a>
+                  <a class="platform-btn jobkorea" href="#" onclick="openJobPlatform(event, 'jobkorea', '${escapeHtml(a.company).replace(/'/g, "\\'")}')">잡코리아 🔗</a>
+                </div>
+                ${a.position ? `<div class="position-name">${escapeHtml(a.position)}</div>` : ''}
+              </div>
+              <span class="status-badge status-${a.status}">${a.status}</span>
+            </div>
+            ${metaParts.length ? `<div class="app-meta">${metaParts.join('')}</div>` : ''}
+            ${a.memo ? `<div class="app-memo">${escapeHtml(a.memo)}</div>` : ''}
+            <div class="app-actions">
+              <button class="btn-edit" onclick="openModal(${a.id})">수정</button>
+              <button class="btn-delete" onclick="deleteApplication(${a.id})">삭제</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function openJobPlatform(event, platform, company) {
+      event.preventDefault();
+      const encoded = encodeURIComponent(company);
+      let deepLink, webLink;
+
+      if (platform === 'saramin') {
+        deepLink = `saramin://search?keyword=${encoded}`;
+        webLink = `https://www.saramin.co.kr/zf_user/search/recruit?searchword=${encoded}`;
+      } else {
+        deepLink = `jobkorea://search?stext=${encoded}`;
+        webLink = `https://www.jobkorea.co.kr/Search/?stext=${encoded}`;
+      }
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (!isMobile) {
+        window.open(webLink, '_blank');
+        return;
+      }
+
+      const start = Date.now();
+      const fallbackTimer = setTimeout(() => {
+        if (Date.now() - start < 2000) {
+          window.location.href = webLink;
+        }
+      }, 1200);
+
+      window.addEventListener('blur', () => clearTimeout(fallbackTimer), { once: true });
+      window.location.href = deepLink;
+    }
+
+    function formatRelativeTime(updatedAt) {
+      if (!updatedAt) return '';
+      const then = new Date(updatedAt.replace(' ', 'T'));
+      const now = new Date();
+      const diffMs = now - then;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays <= 0) return '오늘 업데이트';
+      if (diffDays === 1) return '1일 전 업데이트';
+      return `${diffDays}일 전 업데이트`;
+    }
+
+    function openModal(id) {
+      document.getElementById('modalOverlay').classList.add('active');
+      if (id) {
+        const app = applications.find(a => a.id === id);
+        document.getElementById('modalTitle').textContent = '지원 내역 수정';
+        document.getElementById('editId').value = id;
+        document.getElementById('f_company').value = app.company || '';
+        document.getElementById('f_position').value = app.position || '';
+        document.getElementById('f_apply_date').value = app.apply_date || '';
+        document.getElementById('f_distance').value = app.distance || '';
+        document.getElementById('f_jobplanet_rating').value = app.jobplanet_rating || '';
+        document.getElementById('f_apply_channel').value = app.apply_channel || '';
+        document.getElementById('f_status').value = app.status || '지원함';
+        document.getElementById('f_memo').value = app.memo || '';
+      } else {
+        document.getElementById('modalTitle').textContent = '지원 추가';
+        document.getElementById('editId').value = '';
+        document.getElementById('f_company').value = '';
+        document.getElementById('f_position').value = '';
+        document.getElementById('f_apply_date').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('f_distance').value = '';
+        document.getElementById('f_jobplanet_rating').value = '';
+        document.getElementById('f_apply_channel').value = '';
+        document.getElementById('f_status').value = '지원함';
+        document.getElementById('f_memo').value = '';
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    async function saveApplication() {
+      const id = document.getElementById('editId').value;
+      const company = document.getElementById('f_company').value.trim();
+      if (!company) { alert('회사명을 입력해주세요'); return; }
+
+      const body = {
+        company: company,
+        position: document.getElementById('f_position').value.trim(),
+        apply_date: document.getElementById('f_apply_date').value,
+        distance: document.getElementById('f_distance').value.trim(),
+        jobplanet_rating: document.getElementById('f_jobplanet_rating').value.trim(),
+        apply_channel: document.getElementById('f_apply_channel').value,
+        status: document.getElementById('f_status').value,
+        memo: document.getElementById('f_memo').value.trim(),
+      };
+
+      try {
+        if (id) {
+          await fetch(`/api/travel/job-applications/${id}`, {
+            method: 'PUT', headers: authHeadersJson(), body: JSON.stringify(body)
+          });
+        } else {
+          await fetch('/api/travel/job-applications', {
+            method: 'POST', headers: authHeadersJson(), body: JSON.stringify(body)
+          });
+        }
+        closeModal();
+        await loadApplications();
+      } catch (e) {
+        alert('저장에 실패했어요');
+      }
+    }
+
+    async function deleteApplication(id) {
+      if (!confirm('이 지원 내역을 삭제할까요?')) return;
+      try {
+        await fetch(`/api/travel/job-applications/${id}`, { method: 'DELETE', headers: authHeaders() });
+        await loadApplications();
+      } catch (e) {
+        alert('삭제에 실패했어요');
+      }
+    }
+
+    if (isLoggedIn()) {
+      loadApplications();
+    }
+  </script>
+</body>
+</html>

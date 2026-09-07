@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Apps</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>✨</text></svg>">
+  <link rel="manifest" href="/hub/manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <link rel="apple-touch-icon" href="/hub/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="My Apps">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px;
+      margin: 0;
+      min-height: 100vh;
+      width: 100%;
+    }
+    h1 { margin-bottom: 30px; font-size: 1.8rem; }
+    .auth-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 340px;
+    }
+    input {
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #e94560, #d63652);
+      color: white;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .link-btn {
+      background: none;
+      color: #ff8fa3;
+      text-decoration: underline;
+      font-size: 0.85rem;
+      font-weight: normal;
+      padding: 4px;
+    }
+    .status-bar {
+      margin-bottom: 20px;
+      color: #9999b3;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-bar button {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+    }
+    .side-panels {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 220px;
+    }
+    .online-panel {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 0.78rem;
+    }
+    .online-panel-title {
+      color: #9090a8;
+      font-size: 0.68rem;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .online-user-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+    }
+    .online-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+      flex-shrink: 0;
+    }
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) { .float-chat-panel { width: calc(100vw - 48px); right: 24px; } }
+    .chat-panel {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-panel-title {
+      color: #9090a8;
+      font-size: 0.68rem;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .chat-messages-box {
+      height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+      padding-right: 2px;
+    }
+    .chat-msg {
+      font-size: 0.75rem;
+      background: rgba(255,255,255,0.05);
+      padding: 6px 9px;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
+    .chat-msg-nick {
+      color: #ff8fa3;
+      font-weight: 600;
+      margin-right: 5px;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 6px;
+    }
+    .chat-input-row input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.78rem;
+      min-width: 0;
+    }
+    .chat-input-row button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #e94560;
+      color: white;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    @media (max-width: 600px) {
+      .side-panels { position: static; width: 100%; max-width: 340px; margin-bottom: 16px; }
+    }
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 700px;
+    }
+    @media (max-width: 480px) {
+      .app-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 340px) {
+      .app-grid { grid-template-columns: 1fr; }
+    }
+    .app-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: white;
+    }
+    .app-card:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-3px);
+    }
+    .app-card.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: auto;
+    }
+    .app-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .app-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 6px; }
+    .app-desc { font-size: 0.8rem; color: #9999b3; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <h1>✨ My Apps</h1>
+
+  <div class="auth-box" id="authBox">
+    <input type="text" id="authUsername" placeholder="아이디">
+    <input type="password" id="authPassword" placeholder="비밀번호">
+    <button onclick="doLogin()">로그인</button>
+    <button class="link-btn" onclick="doRegister()">계정이 없으신가요? 회원가입</button>
+  </div>
+
+  <div class="side-panels hidden" id="sidePanels">
+    <div class="online-panel">
+      <div class="online-panel-title">지금 접속중</div>
+      <div id="onlineUserList"></div>
+    </div>
+  </div>
+  <div id="hubContent" class="hidden">
+    <div class="status-bar">
+      <span id="statusText"></span>
+      <button onclick="doLogout()">로그아웃</button>
+    </div>
+
+    <div class="app-grid">
+      <a class="app-card" href="/travel/">
+        <div class="app-icon">🗺️</div>
+        <div class="app-name">여행 코스</div>
+        <div class="app-desc">지역 검색부터 데이트 코스까지</div>
+      </a>
+      <a class="app-card" href="/todo/">
+        <div class="app-icon">✅</div>
+        <div class="app-name">할일 관리</div>
+        <div class="app-desc">간단한 투두리스트</div>
+      </a>
+      <a class="app-card" href="/invite-edit/">
+        <div class="app-icon">💌</div>
+        <div class="app-name">모바일 청첩장</div>
+        <div class="app-desc">나만의 청첩장 만들기</div>
+      </a>
+      <a class="app-card" href="/games/">
+        <div class="app-icon">🎮</div>
+        <div class="app-name">게임</div>
+        <div class="app-desc">오목 대결, 랭킹 게임</div>
+      </a>
+      <a class="app-card" href="/notemap/">
+        <div class="app-icon">📝</div>
+        <div class="app-name">노트맵</div>
+        <div class="app-desc">서로 연결되는 나만의 메모</div>
+      </a>
+      <a class="app-card" href="/stocks/">
+        <div class="app-icon">📈</div>
+        <div class="app-name">국내주식 검색</div>
+        <div class="app-desc">종목 검색, 실시간 시세, 찜목록</div>
+      </a>
+      <a class="app-card" href="/resume/">
+        <div class="app-icon">📄</div>
+        <div class="app-name">이력서 작성</div>
+        <div class="app-desc">경력기술서·자소서, PDF/워드 다운로드</div>
+      </a>
+      <a class="app-card" href="/portfolio/">
+        <div class="app-icon">💼</div>
+        <div class="app-name">포트폴리오 작성</div>
+        <div class="app-desc">프로젝트 카드, PDF/워드 다운로드</div>
+      </a>
+      <a class="app-card" href="/mealboard/">
+        <div class="app-icon">🍽️</div>
+        <div class="app-name">식단 화이트보드</div>
+        <div class="app-desc">주간 식단표, 재료 확인, 다음주 추천</div>
+      </a>
+      <a class="app-card" href="/jobtracker/">
+        <div class="app-icon">📋</div>
+        <div class="app-name">지원 현황 관리</div>
+        <div class="app-desc">지원한 회사, 상태, 거리 관리</div>
+      </a>
+      <a class="app-card" href="/pigbills/">
+        <div class="app-icon">🐷</div>
+        <div class="app-name">돼지 청구서</div>
+        <div class="app-desc">60초마다 돼지를 부숴 청구서를 막아라</div>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function updateView() {
+      const authBox = document.getElementById('authBox');
+      const hubContent = document.getElementById('hubContent');
+      const statusText = document.getElementById('statusText');
+      const onlinePanel = document.getElementById('sidePanels');
+      if (isLoggedIn()) {
+        authBox.classList.add('hidden');
+        hubContent.classList.remove('hidden');
+        onlinePanel.classList.remove('hidden');
+        statusText.textContent = `👤 ${getUsername()}님 환영합니다`;
+        startHeartbeat();
+      } else {
+        authBox.classList.remove('hidden');
+        hubContent.classList.add('hidden');
+        onlinePanel.classList.add('hidden');
+      }
+    }
+
+    async function sendHeartbeat() {
+      try {
+        await fetch('/api/travel/heartbeat', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+      } catch (err) {}
+    }
+
+    async function loadOnlineUsers() {
+      try {
+        const res = await fetch('/api/travel/online-users', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const users = await res.json();
+        const listEl = document.getElementById('onlineUserList');
+        if (users.length === 0) {
+          listEl.innerHTML = '<div style="color:#7a7a92;">아무도 없어요</div>';
+          return;
+        }
+        listEl.innerHTML = users.map(u => `
+          <div class="online-user-item">
+            <span class="online-dot"></span>
+            <span>${u.username}</span>
+          </div>
+        `).join('');
+      } catch (err) {}
+    }
+    function startHeartbeat() {
+      sendHeartbeat();
+      loadOnlineUsers();
+      setInterval(sendHeartbeat, 60000);
+      setInterval(loadOnlineUsers, 20000);
+    }
+
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) connectFloatChat();
+    }
+
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+      floatChatSocket.onopen = () => { document.getElementById('floatChatMessages').innerHTML = ''; };
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => { const p = document.getElementById('floatChatPanel'); if (p.classList.contains('active')) connectFloatChat(); }, 3000);
+      };
+    }
+
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+      if (!message || !hubChatSocket || hubChatSocket.readyState !== WebSocket.OPEN) return;
+      hubChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+
+    async function doRegister() {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!username || !password) { alert('아이디와 비밀번호를 입력해주세요'); return; }
+      try {
+        const res = await fetch('/api/travel/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.detail || '회원가입 실패'); return; }
+        alert('회원가입 완료! 로그인해주세요.');
+      } catch (err) {
+        alert('오류가 발생했습니다');
+      }
+    }
+
+    async function doLogin() {
+      const username = document.getElementById('authUsername').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!username || !password) { alert('아이디와 비밀번호를 입력해주세요'); return; }
+      try {
+        const res = await fetch('/api/travel/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.detail || '로그인 실패'); return; }
+        localStorage.setItem('travel_token', data.access_token);
+        localStorage.setItem('travel_username', username);
+        updateView();
+      } catch (err) {
+        alert('오류가 발생했습니다');
+      }
+    }
+
+    function doLogout() {
+      localStorage.removeItem('travel_token');
+      localStorage.removeItem('travel_username');
+      updateView();
+    }
+
+    updateView();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/hub/sw.js').catch(() => {});
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+
+
+
+
+
+</body>
+</html>

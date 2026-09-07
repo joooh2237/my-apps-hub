@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>내 방명록</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1a1a2e;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
+    }
+    h1 { margin-bottom: 30px; }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 30px;
+    }
+    input, textarea {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      background: #e94560;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover { background: #d63652; }
+    .entries {
+      width: 100%;
+      max-width: 400px;
+    }
+    .entry {
+      background: #16213e;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .entry b { color: #e94560; }
+  </style>
+</head>
+<body>
+  <h1>📖 방명록</h1>
+
+  <form id="guestForm">
+    <input type="text" id="name" placeholder="이름" required>
+    <textarea id="message" placeholder="메시지를 남겨주세요" required></textarea>
+    <button type="submit">등록하기</button>
+  </form>
+
+  <div class="entries" id="entries"></div>
+
+  <script>
+    const form = document.getElementById('guestForm');
+    const entriesDiv = document.getElementById('entries');
+
+    async function loadEntries() {
+      const res = await fetch('/entries');
+      const data = await res.json();
+      entriesDiv.innerHTML = data.map(e =>
+        `<div class="entry"><b>${e.name}</b>: ${e.message}</div>`
+      ).reverse().join('');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const message = document.getElementById('message').value;
+
+      await fetch('/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, message })
+      });
+
+      form.reset();
+      loadEntries();
+    });
+
+    loadEntries();
+  </script>
+</body>
+</html>

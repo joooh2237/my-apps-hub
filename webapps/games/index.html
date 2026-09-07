@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>게임</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎮</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: #a0a0b8;
+    }
+    .top-bar a { color: #a0a0b8; text-decoration: none; }
+    .top-bar a#logoutLink {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+    h1 { margin: 0 0 30px; font-size: 1.8rem; }
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+    .game-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: white;
+    }
+    .game-card:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-3px);
+    }
+    .game-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .game-name { font-weight: bold; font-size: 1.1rem; margin-bottom: 6px; }
+    .game-desc { font-size: 0.8rem; color: #9999b3; }
+    .login-required { text-align: center; color: #9999b3; margin-top: 60px; }
+    .login-required a { color: #ff8fa3; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <a href="/rpg/" onclick="doLogout()" id="logoutLink">로그아웃</a>
+  </div>
+
+  <h1>🎮 게임</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="gameApp" class="hidden">
+    <div class="game-grid">
+      <a class="game-card" href="/games/omok/">
+        <div class="game-icon">⚫️⚪️</div>
+        <div class="game-name">오목 대결</div>
+        <div class="game-desc">실시간으로 다른 사람과 대결</div>
+      </a>
+<a class="game-card" href="/bills/index.html">
+        <div class="game-icon">⚫️⚪️</div>
+        <div class="game-name">Cyberpunk Debt</div>
+        <div class="game-desc">Balatro 스타일 카드 덱빌딩</div>
+      </a>
+<a class="game-card" href="/sudoku/index.html">
+        <div class="game-icon">⚫️⚪️</div>
+        <div class="game-name">Excel Sudoku</div>
+        <div class="game-desc">1~10단계 직장인 위장 스도쿠</div>
+      </a>
+      <a class="game-card" href="/games/arcade/">
+        <div class="game-icon">🏆</div>
+        <div class="game-name">랭킹 게임</div>
+        <div class="game-desc">혼자 하고 순위 겨루기</div>
+      </a>
+      <a class="game-card" href="/games/seotda/">
+        <div class="game-icon">🎴</div>
+        <div class="game-name">섯다</div>
+        <div class="game-desc">가상포인트로 즐기는 실시간 대결</div>
+      </a>
+      <a class="game-card" href="/pigbills/">
+        <div class="game-icon">🐷</div>
+        <div class="game-name">돼지 청구서</div>
+        <div class="game-desc">60초마다 돼지를 부숴 청구서를 막아라</div>
+      </a>
+      <a class="game-card" href="/games/baduki/">
+        <div class="game-icon">🃏</div>
+        <div class="game-name">바둑이</div>
+        <div class="game-desc">아침·점심·저녁 3회 교체 대결</div>
+      </a>
+      <a class="game-card" href="/games/sevenpoker/">
+        <div class="game-icon">♠️</div>
+        <div class="game-name">세븐포커</div>
+        <div class="game-desc">7장 중 5장, 정통 포커 족보</div>
+      </a>
+      <a class="game-card" href="/rpg/">
+        <div class="game-icon">⚔️</div>
+        <div class="game-name">모험 (RPG)</div>
+        <div class="game-desc">방치형 자동사냥으로 캐릭터 키우기</div>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('gameApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('gameApp').classList.remove('hidden');
+      return true;
+    }
+
+    function doLogout() {
+      localStorage.removeItem('travel_token');
+      localStorage.removeItem('travel_username');
+      location.href = '/hub/';
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

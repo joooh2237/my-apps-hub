@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>섯다</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎴</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0d3b26 0%, #145c3a 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .top-bar { width: 100%; max-width: 420px; display: flex; justify-content: flex-end; margin-bottom: 12px; font-size: 0.85rem; }
+    .top-bar a { color: #cdeedd; text-decoration: none; }
+    h1 { margin: 0 0 16px; font-size: 1.5rem; }
+    .join-box { display: flex; gap: 8px; margin-bottom: 20px; width: 100%; max-width: 380px; }
+    .join-box input { flex: 1; padding: 12px 14px; border-radius: 10px; border: none; font-size: 0.95rem; }
+    .join-box button { padding: 12px 18px; border-radius: 10px; border: none; background: #e94560; color: white; font-weight: bold; cursor: pointer; }
+    .room-list-panel { width: 100%; max-width: 380px; margin-bottom: 16px; }
+    .room-list-title { font-size: 0.78rem; color: #cdeedd; margin-bottom: 8px; letter-spacing: 1px; }
+    .room-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; margin-bottom: 6px; cursor: pointer; font-size: 0.85rem; }
+    .room-item:hover { background: rgba(255,255,255,0.12); }
+    .room-item.full { opacity: 0.5; cursor: not-allowed; }
+    .room-item-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; background: rgba(74,222,128,0.2); color: #4ade80; }
+    .room-item-badge.full { background: rgba(255,255,255,0.1); color: #cdeedd; }
+    .room-list-empty { color: #8ab89f; font-size: 0.8rem; text-align: center; padding: 10px 0; }
+    .layout { width: 100%; max-width: 420px; display: none; flex-direction: column; gap: 12px; }
+    .table { width: 100%; background: rgba(0,0,0,0.25); border-radius: 18px; padding: 20px; position: relative; }
+    .table.raise-flash { animation: raiseFlash 0.5s ease; }
+    @keyframes raiseFlash {
+      0% { box-shadow: inset 0 0 0px rgba(255,215,106,0); }
+      40% { box-shadow: inset 0 0 40px rgba(255,215,106,0.5); }
+      100% { box-shadow: inset 0 0 0px rgba(255,215,106,0); }
+    }
+    .opponent-row, .my-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.85rem; }
+    .chip-count { color: #ffd76a; font-weight: bold; }
+    .pot-line { text-align: center; font-size: 1.05rem; margin: 12px 0; color: #ffd76a; font-weight: bold; position: relative; }
+    .round-indicator { text-align: center; font-size: 0.8rem; color: #cdeedd; margin-bottom: 6px; display: none; }
+    .mode-select { display: none; text-align: center; margin-bottom: 12px; }
+    .mode-select-title { font-size: 0.78rem; color: #9fd9bb; margin-bottom: 6px; }
+    .mode-btn { padding: 8px 16px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 0.82rem; margin: 0 4px; background: rgba(255,255,255,0.12); color: white; }
+    .mode-btn.active { background: #4ade80; color: #062; }
+    .card-row { display: flex; gap: 10px; justify-content: center; margin: 14px 0; min-height: 96px; }
+    .hwatu-card {
+      width: 62px; height: 92px; border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 0.78rem; position: relative;
+      opacity: 1; transform: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    }
+    .hwatu-card.dealt { animation: dealIn 0.4s ease forwards; }
+    .hwatu-card:nth-child(1).dealt { animation-delay: 0s; }
+    .hwatu-card:nth-child(2).dealt { animation-delay: 0.15s; }
+    .hwatu-card:nth-child(3).dealt { animation-delay: 0.3s; }
+    @keyframes dealIn {
+      0% { opacity: 0; transform: translateY(-18px) rotate(-8deg) scale(0.8); }
+      to { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+    }
+    .hwatu-card.face {
+      background: linear-gradient(160deg, #fffdf5 0%, #f5edd6 100%);
+      color: #222;
+      border: 2px solid #d9c48a;
+    }
+    .hwatu-card.face.gwang {
+      background: linear-gradient(160deg, #fff8dc 0%, #ffd766 60%, #f0b93c 100%);
+      border-color: #c9861a;
+      color: #4a3300;
+      box-shadow: 0 4px 14px rgba(233,184,60,0.5), 0 0 0 1px rgba(255,255,255,0.3) inset;
+    }
+    .hwatu-card .month-icon { width: 34px; height: 34px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15)); }
+    .hwatu-card .month-icon svg { width: 100%; height: 100%; }
+    .hwatu-card .month-num { font-size: 0.72rem; margin-top: 3px; letter-spacing: 0.5px; }
+    .hwatu-card .gwang-badge {
+      position: absolute; top: 3px; right: 4px; font-size: 0.62rem;
+      background: linear-gradient(160deg, #ffe27a, #d9a017); color: #4a3300;
+      border-radius: 5px; padding: 1px 4px; font-weight: 900;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .hwatu-card.back {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,215,106,0.15) 0%, transparent 60%),
+        repeating-linear-gradient(45deg, #7a1f2b, #7a1f2b 5px, #921f2f 5px, #921f2f 10px);
+      border: 2px solid #4a0f18;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hwatu-card.back::after {
+      content: '花';
+      color: rgba(255,215,106,0.55);
+      font-size: 1.6rem;
+      font-weight: bold;
+    }
+    .my-hand-name {
+      text-align: center;
+      font-size: 0.98rem;
+      color: #ffd76a;
+      font-weight: bold;
+      margin-bottom: 4px;
+      min-height: 1.3em;
+      text-shadow: 0 0 10px rgba(255,215,106,0.35);
+    }
+    .status-text { text-align: center; font-size: 0.9rem; color: #cdeedd; margin: 10px 0; min-height: 1.2em; }
+    .action-buttons { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+    .action-buttons button { padding: 12px 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 0.83rem; }
+    .btn-ping { background: #e94560; color: white; }
+    .btn-check { background: rgba(255,255,255,0.15); color: white; }
+    .btn-die { background: rgba(255,255,255,0.1); color: #ffb3b3; border: 1px solid rgba(255,100,100,0.3) !important; }
+    .btn-call { background: #4ade80; color: #062; }
+    .btn-half { background: #ffb020; color: #402c00; }
+    .btn-ttadang { background: #8a5cf7; color: white; }
+    .next-hand-btn, .start-btn {
+      margin-top: 12px; padding: 12px 22px; border-radius: 10px; border: none;
+      font-weight: bold; cursor: pointer; display: none;
+    }
+    .next-hand-btn { background: #e94560; color: white; }
+    .start-btn { background: #4ade80; color: #062; }
+    .rank-panel {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .rank-panel-title { font-size: 0.78rem; color: #9fd9bb; letter-spacing: 1px; margin-bottom: 8px; }
+    .rank-list { font-size: 0.78rem; line-height: 1.9; color: #cdeedd; }
+    .rank-list .tier-label { color: #ffd76a; font-weight: bold; margin-right: 4px; }
+    .rank-panel .betting-guide { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+    /* 버튼 눌리는 느낌 */
+    .action-buttons button, .start-btn, .next-hand-btn, .join-box button, .mode-btn {
+      transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+    .action-buttons button:hover, .start-btn:hover, .next-hand-btn:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 0 14px rgba(255,255,255,0.25);
+    }
+    .action-buttons button:active, .start-btn:active, .next-hand-btn:active, .join-box button:active, .mode-btn:active {
+      transform: scale(0.93);
+      filter: brightness(0.9);
+    }
+    @keyframes turnGlow {
+      0%, 100% { box-shadow: 0 0 0px rgba(255,215,106,0.0); }
+      50% { box-shadow: 0 0 14px rgba(255,215,106,0.7); }
+    }
+    .my-turn-active {
+      animation: turnGlow 1.4s ease-in-out infinite;
+      border-radius: 8px;
+      padding: 2px 8px;
+      background: rgba(255,215,106,0.1);
+    }
+    @keyframes valuePulse {
+      0% { transform: scale(1); color: #ffd76a; }
+      40% { transform: scale(1.35); color: #4ade80; }
+      100% { transform: scale(1); color: #ffd76a; }
+    }
+    .value-pulse { display: inline-block; animation: valuePulse 0.6s ease; }
+    .confetti-text {
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+      animation: confettiFloat 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes confettiFloat {
+      from { transform: translateY(0); }
+      to { transform: translateY(-4px); }
+    }
+    @keyframes coinBurst {
+      0% { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+    }
+    .coin {
+      position: fixed;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ffe27a, #d9a017);
+      box-shadow: 0 0 6px rgba(255,215,106,0.6);
+      pointer-events: auto;
+      z-index: 3000;
+      animation: coinBurst 0.8s ease-out forwards;
+    }
+    .float-text {
+      position: fixed;
+      font-weight: 900;
+      font-size: 1.15rem;
+      color: #ffd76a;
+      pointer-events: auto;
+      z-index: 3100;
+      animation: floatUp 1s ease-out forwards;
+      text-shadow: 0 0 8px rgba(0,0,0,0.7), 0 0 14px rgba(255,215,106,0.5);
+    }
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translateY(6px) scale(0.8); }
+      15% { opacity: 1; transform: translateY(0) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-46px) scale(1); }
+    }
+    /* 결과 오버레이 */
+    .result-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      z-index: 2500; padding: 20px; backdrop-filter: blur(2px);
+    }
+    .result-overlay.active { display: flex; }
+    .result-card {
+      background: linear-gradient(160deg, #1a1a2e, #16213e);
+      border-radius: 22px; padding: 36px 28px 28px;
+      text-align: center; max-width: 320px; width: 100%;
+      box-shadow: 0 12px 44px rgba(0,0,0,0.55);
+      animation: bannerPop 0.5s cubic-bezier(.34,1.56,.64,1);
+      position: relative;
+    }
+    .result-card.win {
+      border: 3px solid #ffd76a;
+      box-shadow: 0 0 50px rgba(255,215,106,0.55), 0 12px 44px rgba(0,0,0,0.55);
+    }
+    .result-card.lose {
+      border: 3px solid rgba(233,69,96,0.6);
+      filter: saturate(0.75);
+    }
+    .result-card.shake { animation: bannerPop 0.5s cubic-bezier(.34,1.56,.64,1), shakeX 0.5s ease 0.1s; }
+    @keyframes shakeX {
+      10%, 90% { transform: translateX(-4px); }
+      20%, 80% { transform: translateX(6px); }
+      30%, 50%, 70% { transform: translateX(-10px); }
+      40%, 60% { transform: translateX(10px); }
+    }
+    @keyframes bannerPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .result-icon { font-size: 3rem; margin-bottom: 6px; }
+    .result-card.win .result-icon { animation: confettiFloat 1s ease-in-out infinite alternate; }
+    .win-text-big { font-size: 1.5rem; font-weight: 900; margin-bottom: 10px; }
+    .result-card.win .win-text-big { color: #ffd76a; text-shadow: 0 0 16px rgba(255,215,106,0.6); }
+    .result-card.lose .win-text-big { color: #ff9fae; }
+    .hand-names-big { font-size: 0.88rem; color: #cdeedd; margin-bottom: 4px; }
+    .tap-hint { font-size: 0.7rem; color: #7d8fa0; margin-top: 16px; }
+    .confetti-piece {
+      position: fixed; top: -24px; font-size: 1.3rem; z-index: 2600;
+      animation: confettiFall linear forwards; pointer-events: auto;
+    }
+    @keyframes confettiFall {
+      to { transform: translateY(110vh) rotate(360deg); opacity: 0.15; }
+    }
+    .login-required { text-align: center; color: #cdeedd; margin-top: 60px; }
+    .login-required a { color: #ffd76a; }
+    .hidden { display: none !important; }
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) { .float-chat-panel { width: calc(100vw - 48px); right: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="top-bar"><a href="/games/">← 게임으로</a></div>
+  <h1>🎴 섯다 (가상포인트)</h1>
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+  <div id="seotdaApp" class="hidden" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+    <div class="room-list-panel">
+      <div class="room-list-title">📋 활성화된 방</div>
+      <div id="roomListItems"></div>
+    </div>
+    <div class="join-box" id="joinBox">
+      <input type="text" id="roomIdInput" placeholder="방 코드 (예: room1)">
+      <button onclick="joinSeotdaRoom()">입장</button>
+    </div>
+    <div class="layout" id="layout">
+      <div class="table" id="tableEl">
+        <div class="opponent-row">
+          <span id="opponentName">상대 대기중...</span>
+          <span class="chip-count" id="opponentChips">-</span>
+        </div>
+        <div class="card-row" id="opponentCards"></div>
+        <div class="pot-line" id="potLine">판돈: 0</div>
+        <div class="round-indicator" id="roundIndicator"></div>
+        <div class="my-hand-name" id="myHandName"></div>
+        <div class="card-row" id="myCards"></div>
+        <div class="my-row">
+          <span id="myName">나</span>
+          <span class="chip-count" id="myChips">-</span>
+        </div>
+        <div class="status-text" id="statusText"></div>
+        <div class="action-buttons" id="actionButtons"></div>
+        <div style="text-align:center;">
+          <div class="mode-select" id="modeSelect">
+            <div class="mode-select-title">카드 장수 선택</div>
+            <button class="mode-btn" id="mode2Btn" onclick="setMode('2')">2장 모드</button>
+            <button class="mode-btn" id="mode3Btn" onclick="setMode('3')">3장 모드</button>
+          </div>
+          <button class="start-btn" id="aiBtn" onclick="requestAI()" style="display:none; background:#8a5cf7;">🤖 AI와 대결하기</button>
+          <button class="start-btn" id="startBtn" onclick="startHand()">🎲 게임 시작</button>
+          <button class="next-hand-btn" id="nextHandBtn" onclick="startHand()">▶️ 다음 판</button>
+        </div>
+      </div>
+      <div class="rank-panel">
+        <div class="rank-panel-title">📖 족보 순위표 (높은 순)</div>
+        <div class="rank-list">
+          <span class="tier-label">1.</span>38광땡 &nbsp;
+          <span class="tier-label">2.</span>18광땡 &nbsp;
+          <span class="tier-label">3.</span>13광땡<br>
+          <span class="tier-label">4.</span>땡 (10땡 ~ 1땡, 숫자 높을수록 강함)<br>
+          <span class="tier-label">5.</span>알리(1,2) &gt; 독사(1,4) &gt; 구삥(1,9) &gt; 장삼(4,10) &gt; 세륙(4,6)<br>
+          <span class="tier-label">6.</span>일반 끗 (9끗 ~ 1끗)<br>
+          <span class="tier-label">7.</span>망통 (0끗, 가장 낮음)<br>
+          <span style="font-size:0.7rem; color:#8ab89f;">※ 3장 모드는 3장 중 최고의 2장 조합으로 판정합니다</span>
+        </div>
+        <div class="betting-guide rank-list">
+          <span class="tier-label">삥</span>첫 베팅 (200, 오픈 전용)<br>
+          <span class="tier-label">체크</span>베팅 없이 넘기기 (오픈 전용)<br>
+          <span class="tier-label">콜</span>상대 베팅에 맞추기 (승부, 응수 전용)<br>
+          <span class="tier-label">하프</span>판돈 절반만큼 베팅/추가<br>
+          <span class="tier-label">따당</span>기존 베팅의 2배로 베팅/추가<br>
+          <span class="tier-label">다이</span>포기 (판돈 상대에게)
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="result-overlay" id="resultOverlay" onclick="dismissResultOverlay()">
+    <div class="result-card" id="resultCard">
+      <div class="result-icon" id="resultIcon"></div>
+      <div class="win-text-big" id="winTextBig"></div>
+      <div class="hand-names-big" id="handNamesBig"></div>
+      <div class="tap-hint">화면을 터치하면 닫혀요</div>
+    </div>
+  </div>
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('seotdaApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('seotdaApp').classList.remove('hidden');
+      return true;
+    }
+    async function loadRoomList() {
+      try {
+        const res = await fetch('/api/travel/seotda/rooms', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const rooms = await res.json();
+        const listEl = document.getElementById('roomListItems');
+        if (rooms.length === 0) {
+          listEl.innerHTML = '<div class="room-list-empty">아직 열린 방이 없어요. 새로 만들어보세요!</div>';
+          return;
+        }
+        listEl.innerHTML = rooms.map(r => {
+          const isFull = r.player_count >= 2;
+          const badge = isFull ? '<span class="room-item-badge full">진행중</span>' : '<span class="room-item-badge">대기중</span>';
+          return `
+            <div class="room-item ${isFull ? 'full' : ''}" onclick="${isFull ? '' : `quickJoin('${r.room_id}')`}">
+              <span>🎴 ${r.room_id} (${r.players.join(', ')})</span>
+              ${badge}
+            </div>
+          `;
+        }).join('');
+      } catch (err) {}
+    }
+    function quickJoin(roomId) {
+      document.getElementById('roomIdInput').value = roomId;
+      joinSeotdaRoom();
+    }
+    let seotdaSocket = null;
+    let mySeat = null;
+    let lastChips = {};
+    let lastPot = null;
+    let currentMode = '2';
+    let lastResultShownKey = null;
+    function pulseValue(el) {
+      el.classList.remove('value-pulse');
+      void el.offsetWidth;
+      el.classList.add('value-pulse');
+    }
+    function spawnCoinBurst(anchorEl, count) {
+      count = count || 12;
+      const rect = anchorEl.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      for (let i = 0; i < count; i++) {
+        const coin = document.createElement('div');
+        coin.className = 'coin';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 40 + Math.random() * 60;
+        const dx = Math.cos(angle) * dist;
+        const dy = Math.sin(angle) * dist + 20;
+        coin.style.left = cx + 'px';
+        coin.style.top = cy + 'px';
+        coin.style.setProperty('--dx', dx + 'px');
+        coin.style.setProperty('--dy', dy + 'px');
+        document.body.appendChild(coin);
+        setTimeout(() => coin.remove(), 800);
+      }
+    }
+    function spawnFloatText(text, anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      const el = document.createElement('div');
+      el.className = 'float-text';
+      el.textContent = text;
+      el.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+      el.style.top = (rect.top - 10) + 'px';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+    function spawnConfetti(count) {
+      count = count || 40;
+      const emojis = ['🎉', '✨', '🎊', '💰', '⭐'];
+      for (let i = 0; i < count; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        piece.style.left = Math.random() * 100 + 'vw';
+        const duration = 1.6 + Math.random() * 1.4;
+        piece.style.animationDuration = duration + 's';
+        piece.style.animationDelay = (Math.random() * 0.4) + 's';
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), (duration + 0.5) * 1000);
+      }
+    }
+    function dismissResultOverlay() {
+      document.getElementById('resultOverlay').classList.remove('active');
+    }
+    let lastHandKey = '';
+    function joinSeotdaRoom() {
+      if (!checkAuth()) return;
+      const roomId = document.getElementById('roomIdInput').value.trim();
+      if (!roomId) { alert('방 코드를 입력해주세요'); return; }
+      if (seotdaSocket) seotdaSocket.close();
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/seotda/${encodeURIComponent(roomId)}?token=${encodeURIComponent(getToken())}`;
+      seotdaSocket = new WebSocket(wsUrl);
+      seotdaSocket.onopen = () => {
+        document.getElementById('joinBox').style.display = 'none';
+        document.getElementById('layout').style.display = 'flex';
+      };
+      seotdaSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'state') {
+          mySeat = data.my_seat;
+          renderTable(data);
+        }
+      };
+    }
+    const monthIcons = {
+      1: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#e8f5ee" opacity="0.5"/><polygon points="20,3 7,20 14,20 5,33 35,33 26,20 33,20" fill="#2d6a4f"/><polygon points="20,10 12,22 17,22 11,31 29,31 23,22 28,22" fill="#3d8a63"/><rect x="17" y="33" width="6" height="5" fill="#6b4226"/></svg>',
+      2: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#fdeef6" opacity="0.5"/><line x1="4" y1="34" x2="30" y2="10" stroke="#6b4226" stroke-width="2.5"/><circle cx="14" cy="24" r="4.5" fill="#f8b4d9"/><circle cx="14" cy="24" r="2" fill="#fff0f7"/><circle cx="22" cy="16" r="4.5" fill="#f8b4d9"/><circle cx="22" cy="16" r="2" fill="#fff0f7"/><circle cx="30" cy="10" r="4.5" fill="#f8b4d9"/><circle cx="8" cy="30" r="3.5" fill="#f8b4d9"/></svg>',
+      3: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#fff0f5" opacity="0.5"/><polygon points="2,4 38,4 38,11 2,11" fill="#e94560" opacity="0.9"/><line x1="6" y1="34" x2="30" y2="14" stroke="#6b4226" stroke-width="2.5"/><circle cx="16" cy="26" r="5" fill="#ffd1e8"/><circle cx="16" cy="26" r="2" fill="#fff"/><circle cx="24" cy="18" r="5" fill="#ffd1e8"/><circle cx="24" cy="18" r="2" fill="#fff"/><circle cx="30" cy="14" r="4" fill="#ffd1e8"/></svg>',
+      4: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#f3edfb" opacity="0.5"/><path d="M10 3 Q5 14 10 24 Q5 30 10 37" stroke="#4a2f6b" stroke-width="3" fill="none"/><circle cx="20" cy="9" r="3.4" fill="#8a5cf7"/><circle cx="24" cy="15" r="3.4" fill="#9c74f9"/><circle cx="20" cy="21" r="3.4" fill="#8a5cf7"/><circle cx="26" cy="26" r="3.4" fill="#9c74f9"/><circle cx="22" cy="32" r="3.4" fill="#8a5cf7"/></svg>',
+      5: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#eaf6ee" opacity="0.5"/><path d="M20 37 L20 9" stroke="#2d6a4f" stroke-width="2.2"/><path d="M12 37 Q16 20 20 9" stroke="#2d6a4f" stroke-width="2.2" fill="none"/><path d="M28 37 Q24 20 20 9" stroke="#2d6a4f" stroke-width="2.2" fill="none"/><ellipse cx="20" cy="7" rx="7" ry="4.5" fill="#8a6bd9"/><ellipse cx="20" cy="7" rx="3" ry="2" fill="#c3aef0"/></svg>',
+      6: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#fdf0f2" opacity="0.5"/><circle cx="20" cy="17" r="11" fill="#e94560"/><circle cx="20" cy="17" r="7" fill="#ff8fa3"/><circle cx="20" cy="17" r="3" fill="#ffd1dc"/><rect x="18" y="26" width="4" height="11" fill="#2d6a4f"/></svg>',
+      7: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#fdf0f4" opacity="0.5"/><line x1="6" y1="34" x2="32" y2="7" stroke="#6b4226" stroke-width="2.2"/><circle cx="14" cy="26" r="3.4" fill="#ff8fa3"/><circle cx="20" cy="20" r="3.4" fill="#ff8fa3"/><circle cx="26" cy="14" r="3.4" fill="#ff8fa3"/><circle cx="30" cy="9" r="3" fill="#ffb3c1"/></svg>',
+      8: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#1a2f4a" opacity="0.35"/><circle cx="29" cy="10" r="7" fill="#ffe27a"/><circle cx="29" cy="10" r="7" fill="none" stroke="#f0c030" stroke-width="1"/><path d="M6 37 Q10 20 8 3" stroke="#c9b88a" stroke-width="2.2" fill="none"/><path d="M14 37 Q16 18 12 1" stroke="#c9b88a" stroke-width="2.2" fill="none"/><path d="M22 37 Q22 20 20 5" stroke="#c9b88a" stroke-width="2.2" fill="none"/></svg>',
+      9: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#fffbea" opacity="0.5"/><circle cx="20" cy="16" r="3.4" fill="#ffb020"/><circle cx="12" cy="12" r="3.4" fill="#ffd76a"/><circle cx="28" cy="12" r="3.4" fill="#ffd76a"/><circle cx="12" cy="20" r="3.4" fill="#ffd76a"/><circle cx="28" cy="20" r="3.4" fill="#ffd76a"/><circle cx="20" cy="8" r="3.4" fill="#ffd76a"/><circle cx="20" cy="24" r="3.4" fill="#ffd76a"/><rect x="18" y="27" width="4" height="10" fill="#2d6a4f"/></svg>',
+      10: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#fdf0ee" opacity="0.5"/><path d="M20 3 L24.5 13.5 L35 9.5 L27 19.5 L35 25.5 L23.5 23.5 L20 37 L16.5 23.5 L5 25.5 L13 19.5 L5 9.5 L15.5 13.5 Z" fill="#e94560"/><path d="M20 3 L24.5 13.5 L35 9.5 L27 19.5 L35 25.5 L23.5 23.5 L20 37 L16.5 23.5 L5 25.5 L13 19.5 L5 9.5 L15.5 13.5 Z" fill="none" stroke="#c9354d" stroke-width="0.6"/></svg>',
+      11: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#1a2f4a" opacity="0.3"/><line x1="20" y1="3" x2="20" y2="37" stroke="#4a2f6b" stroke-width="2.2"/><ellipse cx="14" cy="12" rx="4.5" ry="6.5" fill="#8a5cf7"/><ellipse cx="26" cy="18" rx="4.5" ry="6.5" fill="#9c74f9"/><ellipse cx="14" cy="26" rx="4.5" ry="6.5" fill="#8a5cf7"/></svg>',
+      12: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#eaf3fb" opacity="0.5"/><path d="M10 3 Q8 20 10 37" stroke="#2d6a4f" stroke-width="2.2" fill="none"/><path d="M18 3 Q16 20 18 37" stroke="#2d6a4f" stroke-width="2.2" fill="none"/><path d="M26 3 Q24 20 26 37" stroke="#2d6a4f" stroke-width="2.2" fill="none"/><circle cx="32" cy="9" r="2.4" fill="#4a9fe9"/><circle cx="34" cy="20" r="2.4" fill="#4a9fe9"/><circle cx="32" cy="31" r="2.4" fill="#4a9fe9"/></svg>'
+    };
+    function hwatuCardHtml(card, faceUp, dealt) {
+      if (!faceUp) return `<div class="hwatu-card back ${dealt ? 'dealt' : ''}"></div>`;
+      const gwangClass = card.is_gwang ? ' gwang' : '';
+      const badge = card.is_gwang ? '<div class="gwang-badge">光</div>' : '';
+      return `<div class="hwatu-card face${gwangClass} ${dealt ? 'dealt' : ''}">
+        ${badge}
+        <div class="month-icon">${monthIcons[card.month] || '🎴'}</div>
+        <div class="month-num">${card.month}월</div>
+      </div>`;
+    }
+    // 클라이언트에서 2장 조합의 족보 판정 (서버 seotda_hand_rank와 동일 로직)
+    function seotdaPairRank(cardA, cardB) {
+      const m1 = Math.min(cardA.month, cardB.month);
+      const m2 = Math.max(cardA.month, cardB.month);
+      const bothGwang = cardA.is_gwang && cardB.is_gwang;
+      if (bothGwang && m1 !== m2 && [1,3,8].includes(m1) && [1,3,8].includes(m2)) {
+        const map = {'3,8':[5,3,'38광땡'], '1,8':[5,2,'18광땡'], '1,3':[5,1,'13광땡']};
+        const key = `${m1},${m2}`;
+        if (map[key]) return map[key];
+      }
+      if (m1 === m2) return [4, m1, `${m1}땡`];
+      const special = {'1,2':[3,5,'알리'],'1,4':[3,4,'독사'],'1,9':[3,3,'구삥'],'4,10':[3,2,'장삼'],'4,6':[3,1,'세륙']};
+      const key = `${m1},${m2}`;
+      if (special[key]) return special[key];
+      const value = (m1 + m2) % 10;
+      if (value === 0) return [1, 0, '망통'];
+      return [2, value, `${value}끗`];
+    }
+    // 카드 1~3장을 받아 최고 족보를 계산 (3장이면 최고의 2장 조합 사용)
+    function seotdaBestRank(cards) {
+      if (cards.length < 2) return null;
+      if (cards.length === 2) return seotdaPairRank(cards[0], cards[1]);
+      let best = null;
+      for (let i = 0; i < cards.length; i++) {
+        for (let j = i + 1; j < cards.length; j++) {
+          const r = seotdaPairRank(cards[i], cards[j]);
+          if (!best || r[0] > best[0] || (r[0] === best[0] && r[1] > best[1])) best = r;
+        }
+      }
+      return best;
+    }
+    function seotdaHandName(cards) {
+      const r = seotdaBestRank(cards);
+      return r ? r[2] : '';
+    }
+    function renderTable(data) {
+      const opponentSeat = mySeat === 'p1' ? 'p2' : 'p1';
+      const meInfo = data.seats.find(s => s.seat === mySeat);
+      const oppInfo = data.seats.find(s => s.seat === opponentSeat);
+      const myNameEl = document.getElementById('myName');
+      const oppNameEl = document.getElementById('opponentName');
+      myNameEl.textContent = meInfo ? meInfo.username : (mySeat ? '나' : '관전중');
+      oppNameEl.textContent = oppInfo ? oppInfo.username : '상대 대기중...';
+      myNameEl.classList.toggle('my-turn-active', data.phase === 'betting' && data.turn === mySeat);
+      oppNameEl.classList.toggle('my-turn-active', data.phase === 'betting' && data.turn === opponentSeat);
+      const myChipsEl = document.getElementById('myChips');
+      const oppChipsEl = document.getElementById('opponentChips');
+      if (meInfo) {
+        const newVal = data.chips[meInfo.username] ?? 0;
+        if (lastChips[meInfo.username] !== undefined && lastChips[meInfo.username] !== newVal) pulseValue(myChipsEl);
+        lastChips[meInfo.username] = newVal;
+        myChipsEl.textContent = `💰 ${newVal}`;
+      }
+      if (oppInfo) {
+        const newVal = data.chips[oppInfo.username] ?? 0;
+        if (lastChips[oppInfo.username] !== undefined && lastChips[oppInfo.username] !== newVal) pulseValue(oppChipsEl);
+        lastChips[oppInfo.username] = newVal;
+        oppChipsEl.textContent = `💰 ${newVal}`;
+      }
+      const potEl = document.getElementById('potLine');
+      const tableEl = document.getElementById('tableEl');
+      if (lastPot !== null && lastPot !== data.pot) {
+        const delta = data.pot - lastPot;
+        pulseValue(potEl);
+        if (delta > 0) {
+          const coinCount = Math.max(6, Math.min(30, Math.round(delta / 40)));
+          spawnCoinBurst(potEl, coinCount);
+          spawnFloatText(`+${delta}`, potEl);
+          if (delta >= 400) {
+            tableEl.classList.remove('raise-flash');
+            void tableEl.offsetWidth;
+            tableEl.classList.add('raise-flash');
+          }
+        }
+      }
+      lastPot = data.pot;
+      potEl.textContent = `판돈: ${data.pot}`;
+
+      const roundEl = document.getElementById('roundIndicator');
+      if (data.phase === 'betting' || (data.phase === 'result' && data.round_num)) {
+        roundEl.style.display = 'block';
+        roundEl.textContent = `${data.round_num} / ${data.max_rounds} 라운드 (${data.mode}장 모드)`;
+      } else {
+        roundEl.style.display = 'none';
+      }
+
+      const myCardsEl = document.getElementById('myCards');
+      const handNameEl = document.getElementById('myHandName');
+      if (data.my_hand && data.my_hand.length > 0) {
+        const handKey = JSON.stringify(data.my_hand);
+        const isNewHand = handKey !== lastHandKey;
+        lastHandKey = handKey;
+        myCardsEl.innerHTML = data.my_hand.map(c => hwatuCardHtml(c, true, isNewHand)).join('');
+        handNameEl.textContent = data.my_hand.length >= 2 ? `현재 패: ${seotdaHandName(data.my_hand)}` : '';
+      } else {
+        myCardsEl.innerHTML = '';
+        handNameEl.textContent = '';
+      }
+      const oppCardsEl = document.getElementById('opponentCards');
+      if (data.phase === 'result' && data.all_hands && data.all_hands[opponentSeat]) {
+        oppCardsEl.innerHTML = data.all_hands[opponentSeat].map(c => hwatuCardHtml(c, true, true)).join('');
+      } else if (data.phase === 'betting') {
+        const cardCount = (data.my_hand && data.my_hand.length) || 1;
+        oppCardsEl.innerHTML = Array(cardCount).fill(0).map(() => hwatuCardHtml(null, false, true)).join('');
+      } else {
+        oppCardsEl.innerHTML = '';
+      }
+
+      const statusEl = document.getElementById('statusText');
+      const actionsEl = document.getElementById('actionButtons');
+      const startBtn = document.getElementById('startBtn');
+      const nextBtn = document.getElementById('nextHandBtn');
+      const aiBtn = document.getElementById('aiBtn');
+      const modeSelect = document.getElementById('modeSelect');
+      startBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+      aiBtn.style.display = 'none';
+      modeSelect.style.display = 'none';
+      actionsEl.innerHTML = '';
+
+      if (data.phase === 'idle') {
+        currentMode = data.mode || '2';
+        document.getElementById('mode2Btn').classList.toggle('active', currentMode === '2');
+        document.getElementById('mode3Btn').classList.toggle('active', currentMode === '3');
+        statusEl.textContent = data.seats.length < 2 ? '상대방을 기다리는 중입니다...' : '카드 장수를 선택하고 게임을 시작하세요!';
+        if (data.seats.length < 2 && mySeat === 'p1' && !data.ai_seat) aiBtn.style.display = 'inline-block';
+        if (data.seats.length === 2 && mySeat) {
+          modeSelect.style.display = 'block';
+          startBtn.style.display = 'inline-block';
+          startBtn.textContent = `🎲 게임 시작 (${currentMode}장 모드)`;
+        }
+      } else if (data.phase === 'betting') {
+        if (data.turn === mySeat) {
+          const myContrib = (data.bet_this_round && data.bet_this_round[mySeat]) || 0;
+          const callAmount = Math.max(0, (data.current_max_bet || 0) - myContrib);
+          const halfOpenAmount = Math.max(100, Math.floor(data.pot / 2));
+          statusEl.textContent = '당신의 차례입니다';
+          if (!data.current_max_bet) {
+            actionsEl.innerHTML = `
+              <button class="btn-ping" onclick="sendAction('ping')">💵 삥 (200)</button>
+              <button class="btn-half" onclick="sendAction('half')">📈 하프 (${halfOpenAmount})</button>
+              <button class="btn-ttadang" onclick="sendAction('ttadang')">🔥 따당 (400)</button>
+              <button class="btn-check" onclick="sendAction('check')">✋ 체크</button>
+              <button class="btn-die" onclick="sendAction('die')">🚫 다이</button>
+            `;
+          } else {
+            actionsEl.innerHTML = `
+              <button class="btn-call" onclick="sendAction('call')">✅ 콜 (${callAmount})</button>
+              <button class="btn-half" onclick="sendAction('half')">📈 하프</button>
+              <button class="btn-ttadang" onclick="sendAction('ttadang')">🔥 따당</button>
+              <button class="btn-die" onclick="sendAction('die')">🚫 다이</button>
+            `;
+          }
+        } else if (mySeat) {
+          statusEl.textContent = '상대방의 차례를 기다리는 중...';
+        } else {
+          statusEl.textContent = '관전중입니다';
+        }
+      } else if (data.phase === 'result' && data.result) {
+        const winnerInfo = data.seats.find(s => s.seat === data.result.winner_seat);
+        const isMeWinner = data.result.winner_seat === mySeat;
+        statusEl.textContent = '';
+        if (mySeat) {
+          nextBtn.style.display = 'inline-block';
+          modeSelect.style.display = 'block';
+          document.getElementById('mode2Btn').classList.toggle('active', (data.mode || '2') === '2');
+          document.getElementById('mode3Btn').classList.toggle('active', (data.mode || '2') === '3');
+        }
+
+        const resultKey = JSON.stringify(data.result) + '|' + data.pot;
+        if (resultKey !== lastResultShownKey) {
+          lastResultShownKey = resultKey;
+          const overlay = document.getElementById('resultOverlay');
+          const card = document.getElementById('resultCard');
+          const icon = document.getElementById('resultIcon');
+          const winTextBig = document.getElementById('winTextBig');
+          const handNamesBig = document.getElementById('handNamesBig');
+          card.classList.remove('win', 'lose', 'shake');
+          if (isMeWinner) {
+            card.classList.add('win');
+            icon.textContent = '🏆';
+            winTextBig.textContent = `승리! +${data.pot}포인트`;
+            spawnConfetti(45);
+          } else {
+            card.classList.add('lose', 'shake');
+            icon.textContent = '💧';
+            winTextBig.textContent = `${winnerInfo ? winnerInfo.username : '상대'}님 승리`;
+          }
+          if (data.result.reason === 'showdown') {
+            handNamesBig.textContent = `p1: ${data.result.p1_hand_name}  vs  p2: ${data.result.p2_hand_name}`;
+          } else {
+            handNamesBig.textContent = isMeWinner ? '상대가 다이(폴드) 했습니다' : '다이(폴드) 했습니다';
+          }
+          overlay.classList.add('active');
+        }
+      } else {
+        lastResultShownKey = null;
+        document.getElementById('resultOverlay').classList.remove('active');
+      }
+    }
+    function setMode(mode) {
+      if (!seotdaSocket || seotdaSocket.readyState !== WebSocket.OPEN) return;
+      currentMode = mode;
+      seotdaSocket.send(JSON.stringify({ type: 'set_mode', mode }));
+    }
+    function startHand() {
+      if (!seotdaSocket || seotdaSocket.readyState !== WebSocket.OPEN) return;
+      dismissResultOverlay();
+      seotdaSocket.send(JSON.stringify({ type: 'start_hand' }));
+    }
+    function requestAI() {
+      if (!seotdaSocket || seotdaSocket.readyState !== WebSocket.OPEN) return;
+      seotdaSocket.send(JSON.stringify({ type: 'add_ai' }));
+    }
+    function sendAction(move) {
+      if (!seotdaSocket || seotdaSocket.readyState !== WebSocket.OPEN) return;
+      seotdaSocket.send(JSON.stringify({ type: 'action', move }));
+    }
+    if (checkAuth()) {
+      loadRoomList();
+      setInterval(loadRoomList, 5000);
+    }
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) connectFloatChat();
+    }
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+      floatChatSocket.onopen = () => { document.getElementById('floatChatMessages').innerHTML = ''; };
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => { const p = document.getElementById('floatChatPanel'); if (p.classList.contains('active')) connectFloatChat(); }, 3000);
+      };
+    }
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+  </script>
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

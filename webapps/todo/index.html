@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>할일 관리</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>✅</text></svg>">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background:
+        linear-gradient(135deg, rgba(15,15,25,0.72) 0%, rgba(14,20,36,0.78) 100%),
+        url('https://images.unsplash.com/photo-1517971071642-34a2d3ecc9cd?auto=format&fit=crop&w=1600&q=70') center center / cover no-repeat fixed;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px 80px;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: #a0a0b8;
+    }
+    .top-bar a { color: #a0a0b8; text-decoration: none; }
+    .top-bar a#logoutLink {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+    }
+    h1 { margin: 0 0 20px; font-size: 1.7rem; letter-spacing: -0.5px; }
+
+    .layout {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .main-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .panel-label {
+      font-size: 0.72rem;
+      color: #9090a8;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .cat-add-row { display: flex; gap: 6px; margin-bottom: 10px; }
+    .cat-add-row input {
+      flex: 1; padding: 9px 10px; border-radius: 8px; border: none; font-size: 0.82rem; min-width: 0;
+    }
+    .cat-add-row button {
+      padding: 9px 11px; border-radius: 8px; border: none;
+      background: linear-gradient(135deg, #e94560, #d63652); color: white;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+
+    .cat-list { display: flex; flex-direction: column; gap: 6px; }
+    .cat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .cat-item:hover { background: rgba(255,255,255,0.09); }
+    .cat-item.active {
+      border-color: #e94560;
+      background: linear-gradient(135deg, #e9456033, #e9456018);
+      color: #ff8fa3;
+    }
+    .cat-item-count { font-size: 0.7rem; color: #9090a8; }
+    .cat-item.active .cat-item-count { color: #ff8fa3aa; }
+    .cat-del-x { color: #7a7a92; font-size: 0.8rem; margin-left: 6px; }
+    .cat-del-x:hover { color: #ff8fa3; }
+    .cat-item-name { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .progress-box {
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .progress-title { font-size: 0.85rem; color: #c0c0d0; }
+    .progress-percent { font-size: 1.6rem; font-weight: 700; color: #ff8fa3; }
+    .progress-count { font-size: 0.8rem; color: #9090a8; }
+    .progress-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #e94560, #ff8fa3); border-radius: 6px; transition: width 0.5s ease; }
+
+    .add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .add-row input[type="text"] { flex: 1; padding: 14px 16px; border-radius: 12px; border: none; font-size: 0.98rem; }
+    .add-row input[type="date"] { width: 130px; padding: 14px 10px; border-radius: 12px; border: none; font-size: 0.85rem; color: #333; }
+    .add-row button {
+      padding: 0 20px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #e94560, #d63652); color: white;
+      font-weight: bold; font-size: 1.2rem; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(233, 69, 96, 0.35);
+    }
+
+    .todo-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 14px; padding: 15px 16px; margin-bottom: 9px;
+      transition: all 0.2s;
+    }
+    .todo-item:hover { background: rgba(255,255,255,0.09); }
+    .todo-item.overdue { border-color: rgba(233, 69, 96, 0.45); background: rgba(233, 69, 96, 0.1); }
+    .todo-item input[type="checkbox"] {
+      width: 21px; height: 21px; flex-shrink: 0; cursor: pointer; margin-top: 2px; accent-color: #e94560;
+    }
+    .todo-main { flex: 1; min-width: 0; }
+    .todo-content { font-size: 0.98rem; margin-bottom: 5px; }
+    .todo-content.done { text-decoration: line-through; color: #6b6b8a; }
+    .todo-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .todo-due { font-size: 0.75rem; color: #9090a8; }
+    .todo-due.overdue-text { color: #ff8fa3; font-weight: 600; }
+    .todo-category-tag { font-size: 0.7rem; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 8px; color: #b0b0c8; }
+    .todo-category-select {
+      width: 100%; margin-top: 8px; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.07);
+      color: #d0d0e0; font-size: 0.76rem;
+    }
+    .todo-category-select option { background: #1a1a2e; color: white; }
+    .todo-notes-toggle {
+      font-size: 0.75rem;
+      color: #8888a3;
+      cursor: pointer;
+      margin-top: 6px;
+      display: inline-block;
+    }
+    .todo-notes-toggle:hover { color: #ff8fa3; }
+    .todo-notes-box {
+      margin-top: 8px;
+    }
+    .todo-notes-box textarea {
+      width: 100%;
+      min-height: 60px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.07);
+      color: #e0e0f0;
+      font-size: 0.82rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .todo-notes-preview {
+      font-size: 0.8rem;
+      color: #b0b0c8;
+      background: rgba(255,255,255,0.04);
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-top: 6px;
+      white-space: pre-wrap;
+    }
+    .todo-delete { background: none; border: none; color: #8888a3; cursor: pointer; font-size: 1.1rem; padding: 4px; flex-shrink: 0; }
+    .todo-delete:hover { color: #ff8fa3; }
+    .empty-msg { color: #9090a8; text-align: center; margin-top: 30px; font-size: 0.88rem; }
+    .login-required { text-align: center; color: #9999b3; margin-top: 60px; }
+    .login-required a { color: #ff8fa3; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 700px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+      .sidebar .panel { min-width: 260px; }
+    }
+
+    .float-chat-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 54px; height: 54px;
+      border-radius: 50%; background: #e94560; color: white; border: none;
+      font-size: 1.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(233,69,96,0.4); z-index: 2000;
+    }
+    .float-chat-panel {
+      position: fixed; bottom: 90px; right: 24px; width: 280px;
+      background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 14px; z-index: 2000; display: none; flex-direction: column;
+    }
+    .float-chat-panel.active { display: flex; }
+    .float-chat-title { color: #9090a8; font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 8px; }
+    .float-chat-messages { height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .float-chat-msg { font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 9px; border-radius: 8px; line-height: 1.4; color: white; }
+    .float-chat-msg-nick { color: #ff8fa3; font-weight: 600; margin-right: 5px; }
+    .float-chat-input-row { display: flex; gap: 6px; }
+    .float-chat-input-row input { flex: 1; padding: 8px 10px; border-radius: 8px; border: none; font-size: 0.78rem; min-width: 0; }
+    .float-chat-input-row button { padding: 8px 12px; border-radius: 8px; border: none; background: #e94560; color: white; font-size: 0.78rem; cursor: pointer; }
+    @media (max-width: 500px) {
+      .float-chat-panel { width: calc(100vw - 48px); right: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="/hub/">← 허브로</a>
+    <a href="#" onclick="doLogout()" id="logoutLink">로그아웃</a>
+  </div>
+
+  <h1>✅ 할일 관리</h1>
+
+  <div id="loginRequired" class="login-required hidden">
+    로그인이 필요해요. <a href="/hub/">허브로 가서 로그인하기</a>
+  </div>
+
+  <div id="todoApp" class="hidden layout">
+
+    <div class="sidebar">
+      <div class="panel">
+        <div class="panel-label">대주제</div>
+        <div class="cat-add-row">
+          <input type="text" id="newCategoryName" placeholder="새 대주제">
+          <button onclick="createCategory()">+</button>
+        </div>
+        <div class="cat-list" id="mainCategoryList"></div>
+      </div>
+
+      <div class="panel hidden" id="subcategoryPanel">
+        <div class="panel-label">중주제</div>
+        <div class="cat-add-row">
+          <input type="text" id="newSubcategoryName" placeholder="새 중주제">
+          <button onclick="createSubcategory()">+</button>
+        </div>
+        <div class="cat-list" id="subCategoryList"></div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="progress-box">
+        <div class="progress-top">
+          <div>
+            <div class="progress-title" id="progressTitle">전체</div>
+            <div class="progress-percent" id="progressPercent">0%</div>
+          </div>
+          <span class="progress-count" id="progressCount">0 / 0 완료</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill" style="width:0%;"></div>
+        </div>
+      </div>
+
+      <div class="add-row">
+        <input type="text" id="todoInput" placeholder="무엇을 해야 하나요?">
+        <input type="date" id="todoDateInput">
+        <button onclick="addTodo()">+</button>
+      </div>
+
+      <div id="todoList"></div>
+    </div>
+
+  </div>
+
+  <script>
+    function getToken() { return localStorage.getItem('travel_token'); }
+    function getUsername() { return localStorage.getItem('travel_username'); }
+    function isLoggedIn() { return !!getToken(); }
+
+    let cachedCategories = [];
+    let cachedTodos = [];
+    let currentMainId = null;
+    let currentSubId = null;
+
+    function checkAuth() {
+      if (!isLoggedIn()) {
+        document.getElementById('loginRequired').classList.remove('hidden');
+        document.getElementById('todoApp').classList.add('hidden');
+        return false;
+      }
+      document.getElementById('loginRequired').classList.add('hidden');
+      document.getElementById('todoApp').classList.remove('hidden');
+      return true;
+    }
+
+    function doLogout() {
+      localStorage.removeItem('travel_token');
+      localStorage.removeItem('travel_username');
+      location.href = '/hub/';
+    }
+
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function formatDue(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      const days = ['일','월','화','수','목','금','토'];
+      return `${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()]})`;
+    }
+
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/travel/todo-categories', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        cachedCategories = await res.json();
+        renderCategories();
+      } catch (err) {
+        console.error('카테고리 로딩 실패:', err);
+      }
+    }
+
+    function renderCategories() {
+      const mainCats = cachedCategories.filter(c => c.parent_id === null);
+      const mainEl = document.getElementById('mainCategoryList');
+
+      let html = `<div class="cat-item ${currentMainId === null ? 'active' : ''}" onclick="selectMain(null)"><span class="cat-item-name">전체</span></div>`;
+      html += mainCats.map(c => `
+        <div class="cat-item ${currentMainId === c.id ? 'active' : ''}" onclick="selectMain(${c.id})">
+          <span class="cat-item-name">📁 ${c.name}</span>
+          <span>
+            <span class="cat-item-count">${c.done_count}/${c.todo_count}</span>
+            <span class="cat-del-x" onclick="event.stopPropagation(); deleteCategory(${c.id})">✕</span>
+          </span>
+        </div>
+      `).join('');
+      mainEl.innerHTML = html;
+
+      const subPanel = document.getElementById('subcategoryPanel');
+      if (currentMainId === null) {
+        subPanel.classList.add('hidden');
+      } else {
+        subPanel.classList.remove('hidden');
+        const subCats = cachedCategories.filter(c => c.parent_id === currentMainId);
+        const subEl = document.getElementById('subCategoryList');
+        let subHtml = `<div class="cat-item ${currentSubId === null ? 'active' : ''}" onclick="selectSub(null)"><span class="cat-item-name">전체</span></div>`;
+        subHtml += subCats.map(c => `
+          <div class="cat-item ${currentSubId === c.id ? 'active' : ''}" onclick="selectSub(${c.id})">
+            <span class="cat-item-name">${c.name}</span>
+            <span>
+              <span class="cat-item-count">${c.done_count}/${c.todo_count}</span>
+              <span class="cat-del-x" onclick="event.stopPropagation(); deleteCategory(${c.id})">✕</span>
+            </span>
+          </div>
+        `).join('');
+        subEl.innerHTML = subHtml;
+      }
+    }
+
+    function selectMain(id) {
+      currentMainId = id;
+      currentSubId = null;
+      renderCategories();
+      renderTodos();
+    }
+
+    function selectSub(id) {
+      currentSubId = id;
+      renderCategories();
+      renderTodos();
+    }
+
+    async function createCategory() {
+      const input = document.getElementById('newCategoryName');
+      const name = input.value.trim();
+      if (!name) return;
+      await fetch('/api/travel/todo-categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ name, parent_id: null })
+      });
+      input.value = '';
+      loadCategories();
+    }
+
+    async function createSubcategory() {
+      if (currentMainId === null) return;
+      const input = document.getElementById('newSubcategoryName');
+      const name = input.value.trim();
+      if (!name) return;
+      await fetch('/api/travel/todo-categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ name, parent_id: currentMainId })
+      });
+      input.value = '';
+      loadCategories();
+    }
+
+    async function deleteCategory(id) {
+      if (!confirm('삭제할까요? (하위 항목도 함께 삭제되며, 안의 할일은 "전체"로 이동됩니다)')) return;
+      await fetch(`/api/travel/todo-categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (currentMainId === id) { currentMainId = null; currentSubId = null; }
+      if (currentSubId === id) { currentSubId = null; }
+      await loadCategories();
+      await loadTodos();
+    }
+
+    async function loadTodos() {
+      try {
+        const res = await fetch('/api/travel/todos', {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        cachedTodos = await res.json();
+        renderTodos();
+      } catch (err) {
+        console.error('할일 로딩 실패:', err);
+      }
+    }
+
+    function currentFilterCategoryIds() {
+      if (currentSubId !== null) return [currentSubId];
+      if (currentMainId !== null) {
+        const subIds = cachedCategories.filter(c => c.parent_id === currentMainId).map(c => c.id);
+        return [currentMainId, ...subIds];
+      }
+      return null;
+    }
+
+    function renderProgress(todos) {
+      const total = todos.length;
+      const done = todos.filter(t => t.done).length;
+      const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+      document.getElementById('progressPercent').textContent = `${percent}%`;
+      document.getElementById('progressCount').textContent = `${done} / ${total} 완료`;
+      document.getElementById('progressBarFill').style.width = `${percent}%`;
+
+      let title = '전체';
+      if (currentSubId !== null) {
+        const sub = cachedCategories.find(c => c.id === currentSubId);
+        title = sub ? sub.name : '전체';
+      } else if (currentMainId !== null) {
+        const main = cachedCategories.find(c => c.id === currentMainId);
+        title = main ? main.name : '전체';
+      }
+      document.getElementById('progressTitle').textContent = title;
+    }
+
+    function categoryNameFor(id) {
+      if (!id) return null;
+      const c = cachedCategories.find(cat => cat.id === id);
+      return c ? c.name : null;
+    }
+
+    function buildCategoryOptions(currentCatId) {
+      const mainCats = cachedCategories.filter(c => c.parent_id === null);
+      let html = `<option value="" ${!currentCatId ? 'selected' : ''}>카테고리 없음</option>`;
+      mainCats.forEach(main => {
+        html += `<option value="${main.id}" ${currentCatId === main.id ? 'selected' : ''}>📁 ${main.name}</option>`;
+        const subs = cachedCategories.filter(c => c.parent_id === main.id);
+        subs.forEach(sub => {
+          html += `<option value="${sub.id}" ${currentCatId === sub.id ? 'selected' : ''}>　 ↳ ${sub.name}</option>`;
+        });
+      });
+      return html;
+    }
+
+    async function changeTodoCategory(todoId, newCategoryId) {
+      await fetch(`/api/travel/todos/${todoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ category_id: newCategoryId ? parseInt(newCategoryId) : null })
+      });
+      await loadCategories();
+      await loadTodos();
+      showQuickToast('카테고리가 변경되었습니다');
+    }
+
+    function toggleNotesEditor(todoId) {
+      const box = document.getElementById(`notesBox-${todoId}`);
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        document.getElementById(`notesInput-${todoId}`).focus();
+      }
+    }
+
+    async function saveNotes(todoId) {
+      const notes = document.getElementById(`notesInput-${todoId}`).value;
+      await fetch(`/api/travel/todos/${todoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ notes })
+      });
+      await loadTodos();
+      showQuickToast('특이사항이 저장되었습니다');
+    }
+
+    function showQuickToast(msg) {
+      let toast = document.getElementById('quickToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'quickToast';
+        toast.style.cssText = 'position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#e94560; color:white; padding:10px 20px; border-radius:20px; font-size:0.85rem; z-index:1000; opacity:0; transition:opacity 0.3s;';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      setTimeout(() => toast.style.opacity = '0', 1800);
+    }
+
+    function renderTodos() {
+      const listEl = document.getElementById('todoList');
+      const filterIds = currentFilterCategoryIds();
+
+      let todos = cachedTodos;
+      if (filterIds !== null) {
+        todos = todos.filter(t => filterIds.includes(t.category_id));
+      }
+
+      renderProgress(todos);
+
+      if (todos.length === 0) {
+        listEl.innerHTML = '<div class="empty-msg">할일이 없어요. 추가해보세요!</div>';
+        return;
+      }
+
+      const today = todayStr();
+      const sorted = [...todos].sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
+
+      listEl.innerHTML = sorted.map(t => {
+        const isOverdue = !t.done && t.due_date && t.due_date < today;
+        const catName = (filterIds === null) ? categoryNameFor(t.category_id) : null;
+        const categoryOptions = buildCategoryOptions(t.category_id);
+        return `
+          <div class="todo-item ${isOverdue ? 'overdue' : ''}">
+            <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTodo(${t.id}, this.checked)">
+            <div class="todo-main">
+              <div class="todo-content ${t.done ? 'done' : ''}">${t.content}</div>
+              <div class="todo-meta">
+                ${t.due_date ? `<span class="todo-due ${isOverdue ? 'overdue-text' : ''}">📅 ${formatDue(t.due_date)}${isOverdue ? ' · 기한 지남' : ''}</span>` : ''}
+                ${catName ? `<span class="todo-category-tag">${catName}</span>` : ''}
+              </div>
+              <select class="todo-category-select" onchange="changeTodoCategory(${t.id}, this.value)">
+                ${categoryOptions}
+              </select>
+              ${t.notes ? `<div class="todo-notes-preview">📝 ${t.notes}</div>` : ''}
+              <span class="todo-notes-toggle" onclick="toggleNotesEditor(${t.id})">${t.notes ? '✏️ 메모 수정' : '+ 특이사항 추가'}</span>
+              <div class="todo-notes-box hidden" id="notesBox-${t.id}">
+                <textarea id="notesInput-${t.id}" placeholder="특이사항을 적어주세요">${t.notes || ''}</textarea>
+                <button class="save-btn" style="margin-top:6px; padding:6px 12px; font-size:0.78rem;" onclick="saveNotes(${t.id})">저장</button>
+              </div>
+            </div>
+            <button class="todo-delete" onclick="deleteTodo(${t.id})">🗑️</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function addTodo() {
+      const input = document.getElementById('todoInput');
+      const dateInput = document.getElementById('todoDateInput');
+      const content = input.value.trim();
+      if (!content) return;
+
+      const targetCategoryId = currentSubId !== null ? currentSubId : currentMainId;
+
+      await fetch('/api/travel/todos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({
+          content,
+          due_date: dateInput.value || '',
+          category_id: targetCategoryId,
+        })
+      });
+      input.value = '';
+      dateInput.value = '';
+      await loadCategories();
+      await loadTodos();
+    }
+
+    async function toggleTodo(id, done) {
+      await fetch(`/api/travel/todos/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ done })
+      });
+      await loadCategories();
+      await loadTodos();
+    }
+
+    async function deleteTodo(id) {
+      await fetch(`/api/travel/todos/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      await loadCategories();
+      await loadTodos();
+    }
+
+    document.getElementById('todoInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addTodo();
+    });
+
+    if (checkAuth()) {
+      loadCategories();
+      loadTodos();
+    }
+  </script>
+
+  <button class="float-chat-btn" id="floatChatBtn" onclick="toggleFloatChat()" style="display:none;">💬</button>
+  <div class="float-chat-panel" id="floatChatPanel">
+    <div class="float-chat-title">💬 라운지 채팅</div>
+    <div class="float-chat-messages" id="floatChatMessages"></div>
+    <div class="float-chat-input-row">
+      <input type="text" id="floatChatInput" placeholder="메시지 입력...">
+      <button onclick="sendFloatChat()">전송</button>
+    </div>
+  </div>
+  <script>
+    let floatChatSocket = null;
+    let floatChatConnected = false;
+
+    function toggleFloatChat() {
+      const panel = document.getElementById('floatChatPanel');
+      panel.classList.toggle('active');
+      if (panel.classList.contains('active') && !floatChatConnected) {
+        connectFloatChat();
+      }
+    }
+
+    function connectFloatChat() {
+      if (!isLoggedIn()) return;
+      floatChatConnected = true;
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${location.host}/api/travel/ws/chat/hub-lobby?token=${encodeURIComponent(getToken())}`;
+      floatChatSocket = new WebSocket(wsUrl);
+
+      floatChatSocket.onopen = () => {
+        document.getElementById('floatChatMessages').innerHTML = '';
+      };
+
+      floatChatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const box = document.getElementById('floatChatMessages');
+        const div = document.createElement('div');
+        div.className = 'float-chat-msg';
+        div.innerHTML = `<span class="float-chat-msg-nick">${data.nickname}</span>${data.message}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      };
+
+      floatChatSocket.onclose = () => {
+        floatChatConnected = false;
+        setTimeout(() => {
+          const panel = document.getElementById('floatChatPanel');
+          if (panel.classList.contains('active')) connectFloatChat();
+        }, 3000);
+      };
+    }
+
+    function sendFloatChat() {
+      const input = document.getElementById('floatChatInput');
+      const message = input.value.trim();
+      if (!message || !floatChatSocket || floatChatSocket.readyState !== WebSocket.OPEN) return;
+      floatChatSocket.send(JSON.stringify({ nickname: getUsername(), message }));
+      input.value = '';
+    }
+
+    document.getElementById('floatChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendFloatChat();
+    });
+
+    if (isLoggedIn()) {
+      document.getElementById('floatChatBtn').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
